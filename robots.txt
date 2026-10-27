@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://chgfyfug699-hue.github.io/sitemap.xml
