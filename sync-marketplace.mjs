@@ -1,12 +1,3 @@
-// sync-marketplace.mjs
-// يسحب (الاسم، الصورة، الوصف) من كتالوج الماركت بليس ويكتبهم في ملف marketplace.json
-// جنب موقعك. مفيش Supabase ولا قاعدة بيانات. الموقع بيقرا الملف مباشرة.
-//
-// التشغيل:  node sync-marketplace.mjs
-// المتطلبات: Node 18+ (مفيش حزم إضافية)
-// اختياري:  ANTHROPIC_API_KEY لترجمة الوصف للعربي تلقائيًا
-//           blocklist.json = مصفوفة ids عايز تستبعدها، مثال: ["abc123"]
-
 import { readFile, writeFile } from 'node:fs/promises';
 
 const OUT = process.env.OUT || './marketplace.json';
@@ -24,13 +15,12 @@ const post = async (path, body, headers = {}) => {
   return j.data;
 };
 
-// ---- helpers ----
 const pick = (o) => (o && (o.NEUTRAL || o['en-US'] || Object.values(o)[0])) || '';
 const catOf = (t) => (/skin|persona/i.test(t || '') ? 'Skins' : 'Addons');
 const fmtSize = (b) => (b >= 1048576 ? (b / 1048576).toFixed(b >= 10485760 ? 0 : 1) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB');
 const vkey = (v) => v.split('.').map(Number).reduce((a, n) => a * 1000 + (n || 0), 0);
 
-async function sizeOf(it) {           // HEAD فقط: بيقرا الحجم من الهيدر ومبيحمّلش ملف
+async function sizeOf(it) {
   try {
     const url = (it.Contents || []).find((c) => c.Url)?.Url;
     if (!url) return '';
@@ -64,11 +54,24 @@ async function pool(arr, n, fn) {
   await Promise.all(Array.from({ length: n }, async () => { while (i < arr.length) await fn(arr[i++]); }));
 }
 
-// ---- 1) دخول مجهول ----
-const login = await post('/Client/LoginWithCustomId', { TitleId: TITLE_ID, CustomId: 'catalog-sync-bot', CreateAccount: true });
-const entityToken = login.EntityToken.EntityToken;
+async function getEntityToken() {
+  const attempts = [
+    { path: '/Client/LoginWithAndroidDeviceID', body: { TitleId: TITLE_ID, AndroidDeviceId: '8a9f0e1d2c3b4a5e', CreateAccount: true, OS: 'Android' } },
+    { path: '/Client/LoginWithIOSDeviceID', body: { TitleId: TITLE_ID, DeviceId: '8A9F0E1D-2C3B-4A5E-9012-3456789ABCDE', CreateAccount: true, OS: 'iOS' } }
+  ];
+  for (const att of attempts) {
+    try {
+      const res = await post(att.path, att.body);
+      if (res?.EntityToken?.EntityToken) return res.EntityToken.EntityToken;
+    } catch (e) {
+      console.log(`تخطي المحاولة ${att.path}...`);
+    }
+  }
+  throw new Error('فشل الحصول على رمز الوصول (Entity Token) من PlayFab');
+}
 
-// ---- 2) سحب الكتالوج ----
+const entityToken = await getEntityToken();
+
 const items = [];
 let token;
 do {
@@ -78,7 +81,6 @@ do {
   console.log('fetched', items.length);
 } while (token && items.length < MAX_ITEMS);
 
-// ---- 3) دمج مع الملف القديم (اللي اترجم قبل كده مبيترجمش تاني) ----
 const old = await readJson(OUT, []);
 const oldById = new Map(old.map((m) => [m.id, m]));
 const block = new Set(await readJson('./blocklist.json', []));
@@ -107,7 +109,6 @@ for (const it of items) {
   result.push(m);
 }
 
-// ---- 4) ترجمة + حجم للجديد بس ----
 await pool(fresh, 5, async ([m, it]) => {
   m.description = await toArabic(m.description);
   m.size = await sizeOf(it);
