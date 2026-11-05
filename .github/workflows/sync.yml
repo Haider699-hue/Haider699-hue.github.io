@@ -1,33 +1,18 @@
-name: Sync Marketplace Daily
+// ---- 1) دخول مجهول ----
+async function getEntityToken() {
+  const attempts = [
+    { path: '/Client/LoginWithAndroidDeviceID', body: { TitleId: TITLE_ID, AndroidDeviceId: '8a9f0e1d2c3b4a5e', CreateAccount: true, OS: 'Android' } },
+    { path: '/Client/LoginWithIOSDeviceID', body: { TitleId: TITLE_ID, DeviceId: '8A9F0E1D-2C3B-4A5E-9012-3456789ABCDE', CreateAccount: true, OS: 'iOS' } }
+  ];
+  for (const att of attempts) {
+    try {
+      const res = await post(att.path, att.body);
+      if (res?.EntityToken?.EntityToken) return res.EntityToken.EntityToken;
+    } catch (e) {
+      console.log(`تخطي المحاولة ${att.path}...`);
+    }
+  }
+  throw new Error('فشل الحصول على رمز الوصول (Entity Token) من PlayFab');
+}
 
-on:
-  schedule:
-    - cron: '0 0 * * *' # يعمل تلقائيًا يوميًا 12 منتصف الليل UTC
-  workflow_dispatch: # يتيح لك التشغيل اليدوي في أي وقت
-
-permissions:
-  contents: write
-
-jobs:
-  sync:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Repo
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Run Sync Script
-        run: node sync-marketplace.mjs
-        env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-
-      - name: Save and Commit JSON
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add marketplace.json
-          git diff --quiet && git diff --staged --quiet || (git commit -m "تحديث تلقائي للماركت بليس" && git push)
+const entityToken = await getEntityToken();
