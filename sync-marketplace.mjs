@@ -1,3 +1,6 @@
+// sync-marketplace.mjs
+// يسحب المودات والسكنات الحقيقية فقط من الماركت بليس ويكتبهم في ملف marketplace.json
+
 import { readFile, writeFile } from 'node:fs/promises';
 
 const OUT = process.env.OUT || './marketplace.json';
@@ -15,6 +18,7 @@ const post = async (path, body, headers = {}) => {
   return j.data;
 };
 
+// ---- helpers ----
 const pick = (o) => (o && (o.NEUTRAL || o['en-US'] || Object.values(o)[0])) || '';
 const catOf = (t) => (/skin|persona/i.test(t || '') ? 'Skins' : 'Addons');
 const fmtSize = (b) => (b >= 1048576 ? (b / 1048576).toFixed(b >= 10485760 ? 0 : 1) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB');
@@ -54,6 +58,7 @@ async function pool(arr, n, fn) {
   await Promise.all(Array.from({ length: n }, async () => { while (i < arr.length) await fn(arr[i++]); }));
 }
 
+// ---- 1) دخول مجهول ----
 async function getEntityToken() {
   const attempts = [
     { path: '/Client/LoginWithAndroidDeviceID', body: { TitleId: TITLE_ID, AndroidDeviceId: '8a9f0e1d2c3b4a5e', CreateAccount: true, OS: 'Android' } },
@@ -72,6 +77,7 @@ async function getEntityToken() {
 
 const entityToken = await getEntityToken();
 
+// ---- 2) سحب الكتالوج ----
 const items = [];
 let token;
 do {
@@ -81,22 +87,40 @@ do {
   console.log('fetched', items.length);
 } while (token && items.length < MAX_ITEMS);
 
+// ---- 3) دمج وتصفية العناصر ----
 const old = await readJson(OUT, []);
 const oldById = new Map(old.map((m) => [m.id, m]));
 const block = new Set(await readJson('./blocklist.json', []));
+
+// أنواع المحتوى المسموح بها فقط
+const VALID_TYPES = /world|addon|skinpack|texturepack|persona|bundle/i;
+// الكلمات التجاهلية لملفات النظام والصور الافتراضية
+const IGNORE_TITLE = /default image|placeholder|followed creators/i;
 
 const fresh = [];
 const result = [];
 for (const it of items) {
   const id = 'mp-' + String(it.Id).toLowerCase();
+  const title = pick(it.Title) || '';
+  const contentType = it.ContentType || '';
+
+  // تصفية: استبعاد ملفات النظام وصفحات المطورين والصور الافتراضية
+  if (!VALID_TYPES.test(contentType)) continue;
+  if (IGNORE_TITLE.test(title)) continue;
   if (block.has(it.Id) || block.has(id)) continue;
+
   if (oldById.has(id)) { result.push(oldById.get(id)); continue; }
+  
   const imgs = (it.Images || []).map((i) => i.Url).filter(Boolean);
   const thumb = (it.Images || []).find((i) => /thumbnail/i.test(i.Tag || ''))?.Url || imgs[0] || '';
+  
+  // تجاهل العناصر بدون صور
+  if (!thumb) continue;
+
   const m = {
     id, slug: id,
-    name: pick(it.Title) || 'بدون اسم',
-    category: catOf(it.ContentType),
+    name: title || 'بدون اسم',
+    category: catOf(contentType),
     image: thumb,
     images: imgs.slice(0, 8),
     description: pick(it.Description),
@@ -109,6 +133,7 @@ for (const it of items) {
   result.push(m);
 }
 
+// ---- 4) ترجمة + حجم للجديد بس ----
 await pool(fresh, 5, async ([m, it]) => {
   m.description = await toArabic(m.description);
   m.size = await sizeOf(it);
