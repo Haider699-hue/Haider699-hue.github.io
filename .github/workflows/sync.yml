@@ -1,0 +1,33 @@
+name: Sync Marketplace Daily
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # يعمل تلقائيًا يوميًا 12 منتصف الليل UTC
+  workflow_dispatch: # يتيح لك التشغيل اليدوي في أي وقت
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run Sync Script
+        run: node sync-marketplace.mjs
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+      - name: Save and Commit JSON
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add marketplace.json
+          git diff --quiet && git diff --staged --quiet || (git commit -m "تحديث تلقائي للماركت بليس" && git push)
