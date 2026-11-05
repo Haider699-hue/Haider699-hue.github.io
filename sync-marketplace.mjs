@@ -1,12 +1,9 @@
-// sync-marketplace.mjs
-// يسحب المودات والسكنات الحقيقية فقط من الماركت بليس ويكتبهم في ملف marketplace.json
-
 import { readFile, writeFile } from 'node:fs/promises';
 
 const OUT = process.env.OUT || './marketplace.json';
 const TITLE_ID = '20CA2';
 const PF = `https://${TITLE_ID.toLowerCase()}.playfabapi.com`;
-const MAX_ITEMS = 5000;
+const MAX_ITEMS = 1000; // حد أقصى 1000 عنصر لنقاء وسرعة الملف
 const AKEY = process.env.ANTHROPIC_API_KEY;
 
 const readJson = async (p, d) => { try { return JSON.parse(await readFile(p, 'utf8')); } catch { return d; } };
@@ -18,7 +15,6 @@ const post = async (path, body, headers = {}) => {
   return j.data;
 };
 
-// ---- helpers ----
 const pick = (o) => (o && (o.NEUTRAL || o['en-US'] || Object.values(o)[0])) || '';
 const catOf = (t) => (/skin|persona/i.test(t || '') ? 'Skins' : 'Addons');
 const fmtSize = (b) => (b >= 1048576 ? (b / 1048576).toFixed(b >= 10485760 ? 0 : 1) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB');
@@ -58,7 +54,6 @@ async function pool(arr, n, fn) {
   await Promise.all(Array.from({ length: n }, async () => { while (i < arr.length) await fn(arr[i++]); }));
 }
 
-// ---- 1) دخول مجهول ----
 async function getEntityToken() {
   const attempts = [
     { path: '/Client/LoginWithAndroidDeviceID', body: { TitleId: TITLE_ID, AndroidDeviceId: '8a9f0e1d2c3b4a5e', CreateAccount: true, OS: 'Android' } },
@@ -72,30 +67,26 @@ async function getEntityToken() {
       console.log(`تخطي المحاولة ${att.path}...`);
     }
   }
-  throw new Error('فشل الحصول على رمز الوصول (Entity Token) من PlayFab');
+  throw new Error('فشل الحصول على رمز الوصول من PlayFab');
 }
 
 const entityToken = await getEntityToken();
 
-// ---- 2) سحب الكتالوج ----
 const items = [];
 let token;
 do {
   const data = await post('/Catalog/SearchItems', { Count: 100, OrderBy: 'creationDate DESC', ContinuationToken: token }, { 'X-EntityToken': entityToken });
   items.push(...(data.Items || []));
   token = data.ContinuationToken;
-  console.log('fetched', items.length);
 } while (token && items.length < MAX_ITEMS);
 
-// ---- 3) دمج وتصفية العناصر ----
 const old = await readJson(OUT, []);
 const oldById = new Map(old.map((m) => [m.id, m]));
 const block = new Set(await readJson('./blocklist.json', []));
 
-// أنواع المحتوى المسموح بها فقط
+// فلاتر تنقية المحتوى الحقيقي فقط
 const VALID_TYPES = /world|addon|skinpack|texturepack|persona|bundle/i;
-// الكلمات التجاهلية لملفات النظام والصور الافتراضية
-const IGNORE_TITLE = /default image|placeholder|followed creators/i;
+const IGNORE_TITLE = /default image|placeholder|followed creators|studio/i;
 
 const fresh = [];
 const result = [];
@@ -104,7 +95,7 @@ for (const it of items) {
   const title = pick(it.Title) || '';
   const contentType = it.ContentType || '';
 
-  // تصفية: استبعاد ملفات النظام وصفحات المطورين والصور الافتراضية
+  // فلترة الملفات العشوائية
   if (!VALID_TYPES.test(contentType)) continue;
   if (IGNORE_TITLE.test(title)) continue;
   if (block.has(it.Id) || block.has(id)) continue;
@@ -113,8 +104,6 @@ for (const it of items) {
   
   const imgs = (it.Images || []).map((i) => i.Url).filter(Boolean);
   const thumb = (it.Images || []).find((i) => /thumbnail/i.test(i.Tag || ''))?.Url || imgs[0] || '';
-  
-  // تجاهل العناصر بدون صور
   if (!thumb) continue;
 
   const m = {
@@ -133,7 +122,6 @@ for (const it of items) {
   result.push(m);
 }
 
-// ---- 4) ترجمة + حجم للجديد بس ----
 await pool(fresh, 5, async ([m, it]) => {
   m.description = await toArabic(m.description);
   m.size = await sizeOf(it);
