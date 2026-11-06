@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>تحميل مود الأمن والحماية</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #121212;
+      color: #ffffff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .card {
+      background-color: #1e1e1e;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+      text-align: center;
+      max-width: 400px;
+      width: 90%;
+    }
+    h2 {
+      color: #4ade80;
+      margin-bottom: 20px;
+    }
+    .btn {
+      background-color: #22c55e;
+      color: #000000;
+      border: none;
+      padding: 14px 28px;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background-color 0.2s, transform 0.1s;
+      width: 100%;
+    }
+    .btn:hover {
+      background-color: #16a34a;
+    }
+    .btn:active {
+      transform: scale(0.98);
+    }
+    #status {
+      margin-top: 15px;
+      font-size: 14px;
+      color: #a1a1aa;
+      word-break: break-word;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h2>🔒 مود الأمن والحماية</h2>
+    <p>اضغط على الزر لفك التشفير وتحميل المود مباشرة إلى جهازك:</p>
+    <button class="btn" onclick="downloadEncryptedMod()">⬇️ تحميل المود (.mcaddon)</button>
+    <div id="status"></div>
+  </div>
+
+  <script>
+  async function downloadEncryptedMod() {
+    const statusDiv = document.getElementById('status');
+    const TITLE_ID = "12FA71";
+    const FILE_ID = "mcaddon_";
+    const ORIGINAL_NAME = "إضافة الأمن والحماية.mcaddon";
+    
+    // رابط الملف المشفّر المحلي داخل مستودع GitHub الخاص بك
+    const BIN_FILE_URL = "./mod.bin";
+
+    try {
+      statusDiv.style.color = "#3b82f6";
+      statusDiv.innerText = "جاري الاتصال بالسيرفر وترخيص الزائر...";
+
+      // 1. تسجيل دخول تلقائي
+      const loginResponse = await fetch(`https://${TITLE_ID}.playfabapi.com/Client/LoginWithCustomId`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          TitleId: TITLE_ID,
+          CustomId: "visitor_" + Math.random().toString(36).substring(7),
+          CreateAccount: true
+        })
+      });
+
+      const loginResult = await loginResponse.json();
+      if (!loginResult.data || !loginResult.data.SessionTicket) {
+        throw new Error("فشل الاتصال بالسيرفر: " + (loginResult.errorMessage || "خطأ ترخيص"));
+      }
+
+      const sessionTicket = loginResult.data.SessionTicket;
+
+      statusDiv.innerText = "جاري جلب مفاتيح التشفير من PlayFab...";
+
+      // 2. جلب مفتاح التشفير
+      const pfResponse = await fetch(`https://${TITLE_ID}.playfabapi.com/Client/GetTitleData`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Authorization": sessionTicket
+        },
+        body: JSON.stringify({ Keys: ["app_keys"] })
+      });
+      
+      const pfResult = await pfResponse.json();
+      if (!pfResult.data || !pfResult.data.Data || !pfResult.data.Data.app_keys) {
+        throw new Error("لم يتم العثور على app_keys في PlayFab");
+      }
+
+      const appKeys = JSON.parse(pfResult.data.Data.app_keys);
+      const itemData = appKeys[FILE_ID] || Object.values(appKeys)[0];
+
+      if (!itemData || !itemData.key || !itemData.iv) {
+        throw new Error("بيانات المفتاح داخل PlayFab غير مكتملة!");
+      }
+
+      statusDiv.innerText = "جاري تحميل الملف المشفّر...";
+
+      // 3. تحميل الملف المشفّر مباشر وبسرعة فائقة بدون بروكسي
+      const binResponse = await fetch(BIN_FILE_URL);
+      if (!binResponse.ok) throw new Error("تعذر تحميل ملف mod.bin من الموقع!");
+      
+      const encryptedBuffer = await binResponse.arrayBuffer();
+
+      statusDiv.innerText = "جاري فك التشفير في الذاكرة الحية...";
+
+      // 4. تحويل المفاتيح وفك التشفير
+      const keyBuffer = Uint8Array.from(atob(itemData.key), c => c.charCodeAt(0));
+      const ivBuffer = Uint8Array.from(atob(itemData.iv), c => c.charCodeAt(0));
+
+      const cryptoKey = await window.crypto.subtle.importKey(
+        "raw", keyBuffer, { name: "AES-GCM" }, false, ["decrypt"]
+      );
+
+      const decryptedBuffer = await window.crypto.subtle.decrypt(
+        { name: "AES-GCM", iv: ivBuffer }, cryptoKey, encryptedBuffer
+      );
+
+      statusDiv.style.color = "#22c55e";
+      statusDiv.innerText = "تم فك التشفير بنجاح! جاري التنزيل...";
+
+      // 5. تنزيل الملف الأصلي
+      const blob = new Blob([decryptedBuffer]);
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = ORIGINAL_NAME;
+      link.click();
+
+    } catch (err) {
+      console.error(err);
+      statusDiv.style.color = "#ef4444";
+      statusDiv.innerText = "حدث خطأ: " + err.message;
+    }
+  }
+  </script>
+
+</body>
+</html>
