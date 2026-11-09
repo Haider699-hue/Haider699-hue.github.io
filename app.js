@@ -1,6 +1,10 @@
-/* HAIDER app — الأقسام بترتيب التنفيذ الأصلي. كل قسم IIFE معزول بـ try/catch حتى لا يوقف خطأ في قسم بقية الأقسام. */
+/* HAIDER app — كل قسم معزول بـ try/catch حتى لا يوقف خطأ في قسم بقية الأقسام.
+ * الأقسام بترتيب التنفيذ: 1 اليوتيوب · 2 Supabase · 3 الأساس · 4 الجسيمات · 5 التحميل/الإمالة · 6 الصوت
+ * 7 الإدارة · 8 التأثيرات · 9 الهيدر · 10 SEO · 11 المعرض · 12 للأعلى · 13 البحث/الفراغ
+ * التواصل بين الأقسام فقط عبر window.haiderSupabase و window.HAIDER (getMods/reload/setCategory). */
+const REDUCED_MOTION = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-/* ===== [2] section-2 ===== */
+/* ===== 1. بوابة اليوتيوب ===== */
 try{
 (function(){
   var g=document.getElementById('ytGate'),root=document.documentElement;
@@ -13,40 +17,38 @@ try{
   }
   document.getElementById('ytYes').addEventListener('click',close);
   document.getElementById('ytNo').addEventListener('click',function(){
-    var w=null; try{ w=window.open(URL_,'_blank'); }catch(e){}
+    var w=null; try{ w=window.open(URL_,'_blank'); if(w) w.opener=null; }catch(e){}
     if(!w){ location.href=URL_; return; }
     close();
   });
-  g.addEventListener('keydown',function(e){
-    if(e.key!=='Tab')return;
-    var a=document.getElementById('ytYes'),z=document.getElementById('ytNo'),f=document.activeElement;
-    if(!g.contains(f)){e.preventDefault();a.focus()}
-    else if(e.shiftKey&&f===a){e.preventDefault();z.focus()}
-    else if(!e.shiftKey&&f===z){e.preventDefault();a.focus()}
-  });
 })();
-}catch(err){console.error('[HAIDER] section failed: section-2',err)}
-;
+}catch(err){console.error('[HAIDER] section failed: youtube-gate',err)}
 
-/* ===== [3] section-3 ===== */
-window.HAIDER_SUPABASE_URL = 'https://lpnpyekzadlzazehaxqo.supabase.co';
-  window.HAIDER_SUPABASE_KEY = 'sb_publishable_Dm9yExHFUUA6y8WcAa4T7g_i_Z4z1fJ';
-  window.haiderSupabase = null;
-  function haiderInitSb() {
-  window.haiderSupabase = (window.supabase && window.supabase.createClient)
-    ? window.supabase.createClient(window.HAIDER_SUPABASE_URL, window.HAIDER_SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } })
-    : null;
-  if (window.haiderSupabase) window.dispatchEvent(new Event('haider-sb-ready'));
+/* ===== 2. تهيئة Supabase ===== */
+try{
+(function(){
+  /* المفتاح العام (publishable) مقصود وجوده هنا — الحماية الفعلية من سياسات RLS في Supabase. */
+  var SUPABASE_URL='https://lpnpyekzadlzazehaxqo.supabase.co';
+  var SUPABASE_KEY='sb_publishable_Dm9yExHFUUA6y8WcAa4T7g_i_Z4z1fJ';
+  var SDK_SRC='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4';
+  /* Optional Subresource Integrity hash for SDK_SRC (see SECURITY_SETUP.md, step "SRI").
+   * Leave empty to skip. Better: self-host the file and point SDK_SRC to it. */
+  var SDK_INTEGRITY='';
+  window.haiderSupabase=null;
+  function init(){
+    if(!(window.supabase&&window.supabase.createClient))return;
+    window.haiderSupabase=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
+    window.dispatchEvent(new Event('haider-sb-ready'));
   }
-  (function () {
-    var t = document.createElement('script');
-    t.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4'; t.async = true; t.onload = haiderInitSb;
-    document.head.appendChild(t);
-  })();
-;
+  var s=document.createElement('script');s.src=SDK_SRC;s.async=true;s.onload=init;
+  if(SDK_INTEGRITY){s.integrity=SDK_INTEGRITY;s.crossOrigin='anonymous'}
+  document.head.appendChild(s);
+})();
+}catch(err){console.error('[HAIDER] section failed: supabase-bootstrap',err)}
 
-/* ===== [4] HAIDER core logic — preserve database, search, and core func ===== */
-/* HAIDER core logic — preserve database, search, and core functionality */
+/* ===== 3. المنطق الأساسي: البيانات والبحث والعرض والتوجيه وصفحة التفاصيل ===== */
+try{
+(function(){
   /* ===== أضف عناصرك هنا ===== */
   const LOCAL_MODS = [
     /* انسخ القالب ده وكرره لكل عنصر (حط فاصلة بين كل عنصر والتاني):
@@ -64,7 +66,7 @@ window.HAIDER_SUPABASE_URL = 'https://lpnpyekzadlzazehaxqo.supabase.co';
   ];
   /* ========================== */
   let allMods = LOCAL_MODS.slice();
-  const PAGE_SIZE = 24, SEARCH_DEBOUNCE_MS = 200, EAGER_CARDS = 4;
+  const PAGE_SIZE = 24, SEARCH_DEBOUNCE_MS = 200, EAGER_CARDS = 4, WEEK_MS = 6048e5;
   let sb = window.haiderSupabase;
   const PAGES = '';   /* بعد ما ترفع صفحات build-pages.mjs اكتب هنا '/m/' عشان روابط المشاركة تبقى صفحات ثابتة */   
   const NO_LINK_MSG = 'الرابط غير متاح حاليًا';
@@ -78,7 +80,7 @@ window.HAIDER_SUPABASE_URL = 'https://lpnpyekzadlzazehaxqo.supabase.co';
   const TYPES = ['mcpack', 'mcaddon', 'mcworld', 'apk', 'other'];
 
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  function safeUrl(u) { try { u = String(u == null ? '' : u).trim(); const x = new URL(u); return (x.protocol === 'http:' || x.protocol === 'https:') ? x.href : ''; } catch (e) { return ''; } }
+  function safeUrl(u) { try { u = String(u == null ? '' : u).trim(); const x = new URL(u); return ((x.protocol === 'http:' || x.protocol === 'https:') && !x.username && !x.password) ? x.href : ''; } catch (e) { return ''; } }
   const cssUrl = u => String(u || '').replace(/\\/g, '%5C').replace(/'/g, '%27').replace(/"/g, '%22').replace(/[()\s]/g, c => encodeURIComponent(c));
   const fold = s => String(s == null ? '' : s).toLowerCase().replace(/[\u064B-\u065F\u0670\u0640]/g, '').replace(/[أإآ]/g, 'ا').replace(/ى/g, 'ي').replace(/ة/g, 'ه');
   function h32(s) { let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0; return (h >>> 0).toString(36); }
@@ -106,6 +108,7 @@ window.HAIDER_SUPABASE_URL = 'https://lpnpyekzadlzazehaxqo.supabase.co';
 
   let detailOpen = false, curId = '', pushed = false, openHash = '', openerEl = null, view = [], shown = 0, curCat = 'All', curQ = '', curSort = 'downloads';
   const $id = id => document.getElementById(id);
+  const isRecent = n => !!n.createdAt && Date.now() - Date.parse(n.createdAt) < WEEK_MS;
   function filtered() {
     const q = fold(curQ).trim();
     const r = allMods.filter(m => { const n = normalize(m); return (curCat === 'All' || n.category === curCat) && (!q || n.s.indexOf(q) > -1); });
@@ -130,7 +133,7 @@ window.HAIDER_SUPABASE_URL = 'https://lpnpyekzadlzazehaxqo.supabase.co';
     const chips = specs.map(v => `<span dir="ltr">${esc(v)}</span>`).join('<span class="dot" aria-hidden="true">·</span>');
     const name = `<div class="mod-name" role="button" tabindex="0">${esc(n.name)}</div>`;
     const wrap = chips ? `<div class="mod-spec">${chips}</div>` : '';
-    const isNew = n.createdAt && (Date.now() - Date.parse(n.createdAt) < 6048e5),
+    const isNew = isRecent(n),
       zb = n.featured ? '<div class="zbadges"><span class="zb zb-top">مميز</span></div>' : '';
     const head = `<div class="mod-card ${kind}${n.featured ? ' is-top' : ''}${isNew ? ' is-new' : ''}" data-id="${esc(n.id)}" data-cat="${esc(n.category)}" style="--cat-color:${c.c};">`;
     if (kind === 'k-ver') return `${head}<div class="mod-body">${name}${wrap}${btn}</div></div>`;
@@ -163,7 +166,7 @@ window.HAIDER_SUPABASE_URL = 'https://lpnpyekzadlzazehaxqo.supabase.co';
     }
     $id('resultCount').textContent = view.length > 0 ? `تم العثور على ${view.length} عنصر` : '';
     $id('emptyState').hidden = view.length > 0;
-    { const et = document.querySelector('#emptyState .empty-title'), es = document.querySelector('#emptyState .empty-sub'); if (et) et.textContent = window.__loadErr ? 'تعذّر تحميل المحتوى' : 'لا توجد نتائج في هذا البُعد'; if (es) es.textContent = window.__loadErr ? 'تحقق من الاتصال بالإنترنت ثم أعد تحميل الصفحة.' : 'جرّب كلمة بحث مختلفة أو اختر تصنيفًا آخر'; const rb = $id('emptyReset'); if (rb) rb.textContent = window.__loadErr ? 'إعادة المحاولة' : 'عرض كل العناصر'; }
+    { const et = document.querySelector('#emptyState .empty-title'), es = document.querySelector('#emptyState .empty-sub'); if (et) et.textContent = window.__loadErr ? 'تعذّر تحميل المحتوى' : 'لا توجد نتائج في هذا البُعد'; if (es) es.textContent = window.__loadErr ? 'تحقق من الاتصال بالإنترنت ثم أعد تحميل الصفحة.' : 'جرّب كلمة بحث مختلفة أو اختر تصنيفًا آخر'; }
     if (curId && !detailOpen) fromHash(true);
   }
   function showMore() {
@@ -199,7 +202,6 @@ window.HAIDER_SUPABASE_URL = 'https://lpnpyekzadlzazehaxqo.supabase.co';
     const ss = $id('sortSel'); if (ss && ss.value !== curSort) ss.value = curSort;
   }
   function fromHash(force) {
-    if (location.hash === '#admin') return;
     const r = parseHash();
     if (r.id) { if (detailOpen && location.hash === openHash) return; curId = r.id; if (!openDetail(r.id, 'route') && allMods.length) { curId = ''; try { history.replaceState(null, '', '#/'); } catch (e) {} } return; }
     if (detailOpen) closeUi();
@@ -209,8 +211,7 @@ window.HAIDER_SUPABASE_URL = 'https://lpnpyekzadlzazehaxqo.supabase.co';
   }
   addEventListener('popstate', fromHash); addEventListener('hashchange', fromHash);
 
-  window.filterMods = function(cat, el) { curCat = cat; syncUi(); apply(); go(true); };
-  window.resetFilters = function() { clearTimeout(searchTimer); curCat = 'All'; curQ = ''; syncUi(); apply(); go(true); };
+  function setCategory(cat) { curCat = cat; syncUi(); apply(); go(true); }
   let searchTimer = 0;
   function searchMods() { clearTimeout(searchTimer); curQ = $id('searchInput').value; apply(); go(false); }
   $id('sortSel').addEventListener('change', e => { curSort = e.target.value; apply(); go(false); });
@@ -236,7 +237,7 @@ window.HAIDER_SUPABASE_URL = 'https://lpnpyekzadlzazehaxqo.supabase.co';
     const fact = (k, v) => v ? `<div><dt>${k}</dt><dd dir="ltr">${esc(v)}</dd></div>` : '';
     const facts = fact('إصدار اللعبة المسجل', n.mcVersion) + fact('الحجم', n.size) + fact('التحميلات', n.downloads > 0 ? n.downloads.toLocaleString('en') : '') + fact('أُضيف في', n.createdAt ? new Date(n.createdAt).toLocaleDateString('ar-EG-u-nu-latn', { day: 'numeric', month: 'long', year: 'numeric' }) : '');
     const steps = HOW[howKey(n)] || [];
-    const isNew = n.createdAt && (Date.now() - Date.parse(n.createdAt) < 6048e5);
+    const isNew = isRecent(n);
     let h = '<article class="dp" style="--cat-color:' + c.c + '"><div class="dp-top"><div class="dp-media">';
     if (imgs.length) h += `<div class="tt-img"><img src="${esc(imgs[0])}" alt="${esc(n.name)}" decoding="async">` + (imgs.length > 1 ? '<button type="button" class="g-arrow g-prev" aria-label="الصورة السابقة" data-gal="-1"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button><button type="button" class="g-arrow g-next" aria-label="الصورة التالية" data-gal="1"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button>' : '') + `</div>`;
     if (imgs.length > 1) h += '<div class="tt-th">' + imgs.map(u => `<img src="${esc(u)}" alt="" loading="lazy" data-gal="0">`).join('') + '</div>';
@@ -253,7 +254,7 @@ window.HAIDER_SUPABASE_URL = 'https://lpnpyekzadlzazehaxqo.supabase.co';
     if (rel.length) h += '<section class="dp-sec"><h3>محتوى ذو صلة</h3><div class="dp-rels">' + rel.map(r => `<button type="button" class="dp-rel" data-open="${esc(r.id)}">${r.image ? `<img src="${esc(r.image)}" alt="" loading="lazy">` : ''}<span><b>${esc(r.name)}</b><small>${esc(c.label)}</small></span></button>`).join('') + '</div></section>';
     h += '</article><div class="d-dl" style="--cat-color:' + c.c + '">';
     h += n.download
-      ? `<a href="${esc(n.download)}" class="dl-btn dl-big" target="_blank" rel="noopener">تحميل${n.size ? ' · <span dir="ltr">' + esc(n.size) + '</span>' : ''}</a>`
+      ? `<a href="${esc(n.download)}" class="dl-btn dl-big" target="_blank" rel="noopener noreferrer">تحميل${n.size ? ' · <span dir="ltr">' + esc(n.size) + '</span>' : ''}</a>`
       : `<span class="dl-btn dl-big is-off" role="note">${NO_LINK_MSG}</span>`;
     return h + '</div>';
   }
@@ -262,9 +263,9 @@ window.HAIDER_SUPABASE_URL = 'https://lpnpyekzadlzazehaxqo.supabase.co';
     const cp = e.target.closest('.dp-copy');
     if (cp) {
       const u = cp.getAttribute('data-url') || location.href;
-      const done = ok => { const old = cp.dataset.t || (cp.dataset.t = cp.textContent); cp.textContent = ok ? 'تم النسخ ✓' : 'تعذّر النسخ'; cp.setAttribute('aria-live','polite'); setTimeout(() => { cp.textContent = old; }, 1800); };
-      const legacy = () => { let ta; try { ta=document.createElement('textarea'); ta.value=u; ta.setAttribute('readonly',''); ta.style.cssText='position:fixed;opacity:0;pointer-events:none'; document.body.appendChild(ta); ta.select(); done(document.execCommand('copy')); } catch (_) { done(false); } finally { if(ta)ta.remove(); } };
-      if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(u).then(() => done(true), legacy); } else legacy();
+      const done = ok => { const old = cp.textContent; cp.textContent = ok ? 'تم النسخ ✓' : 'تعذّر النسخ'; cp.setAttribute('aria-live','polite'); setTimeout(() => { cp.textContent = old; }, 1800); };
+      if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(u).then(() => done(true), () => done(false)); }
+      else { let ta; try { ta=document.createElement('textarea'); ta.value=u; ta.setAttribute('readonly',''); ta.style.cssText='position:fixed;opacity:0;pointer-events:none'; document.body.appendChild(ta); ta.select(); done(document.execCommand('copy')); } catch (_) { done(false); } finally { if(ta)ta.remove(); } }
       return;
     }
     const r = e.target.closest('.dp-rel');
@@ -338,7 +339,7 @@ window.HAIDER_SUPABASE_URL = 'https://lpnpyekzadlzazehaxqo.supabase.co';
   }
   
 
-  ;async function haiderBoot() {
+  async function haiderBoot() {
     sb = window.haiderSupabase;
     if (!sb) return;
     try {
@@ -350,9 +351,13 @@ window.HAIDER_SUPABASE_URL = 'https://lpnpyekzadlzazehaxqo.supabase.co';
 
   { const r = parseHash(); curCat = r.cat; curQ = r.q; curSort = r.sort; curId = r.id; syncUi(); }
   renderMods(allMods);
-;
 
-/* ===== [5] HAIDER · مرحلة 2: محرك الأبعاد ===== */
+  /* الواجهة الوحيدة المكشوفة للأقسام الأخرى (بدل المتغيرات العامة الضمنية) */
+  window.HAIDER = Object.freeze({ getMods: () => allMods, reload: loadModsFromSupabase, setCategory });
+})();
+}catch(err){console.error('[HAIDER] section failed: core',err)}
+
+/* ===== 4. محرك الجسيمات ===== */
 try{
 /* HAIDER · مرحلة 2: محرك الأبعاد */
 (function(){
@@ -362,9 +367,8 @@ try{
   var B={mote:{vy:[-.35,-.1],sw:0,al:.6},orb:{vy:[-.7,-.25],sw:.35,al:.95,pulse:1},ember:{vy:[-1.6,-.6],sw:.5,al:1,life:1},
     glyph:{vy:[-.4,-.12],sw:.15,al:.75},snow:{vy:[.3,.8],sw:.4,al:.85}};
   var GL=['ᔑ','ʖ','ᓵ','↸','ᒷ','⎓','⊣','⍑','╎','⋮','ꖌ','ꖎ','ᒲ','リ','ᑑ','∷','ᓭ','ℸ','⚍','⍊','∴','⨅'];
-  var root=document.documentElement,cur='',px=innerWidth/2,py=innerHeight/2;
-  var rm=matchMedia('(prefers-reduced-motion: reduce)').matches;
-  addEventListener('pointerdown',function(e){px=e.clientX;py=e.clientY},{passive:true,capture:true});
+  var root=document.documentElement,cur='';
+  var rm=REDUCED_MOTION;
 
   /* جسيمات */
   var cv=document.createElement('canvas');cv.style.cssText='position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:-1';
@@ -392,20 +396,15 @@ try{
     ctx.globalAlpha=1;requestAnimationFrame(draw)}
   function start(){if(rm||on)return;on=true;last=performance.now();requestAnimationFrame(draw)}
 
-  /* بوابة + إشعار البُعد */
-
-  /* خانة الهوت بار المنزلقة */
-
-  function setDim(cat){if(cat===cur||!D[cat])return;var first=!cur;cur=cat;root.setAttribute('data-dim',cat);
+  function setDim(cat){if(cat===cur||!D[cat])return;cur=cat;root.setAttribute('data-dim',cat);
     if(!rm)setP(D[cat]);}
   function sync(){setDim(root.getAttribute('data-cat')||'All')}
   new MutationObserver(sync).observe(root,{attributes:true,attributeFilter:['data-cat']});
   sync();start();
 })();
-}catch(err){console.error('[HAIDER] section failed: HAIDER · مرحلة 2: محرك الأبعاد',err)}
-;
+}catch(err){console.error('[HAIDER] section failed: particles',err)}
 
-/* ===== [6] HAIDER · مرحلة 3 ===== */
+/* ===== 5. حالة التحميل + إمالة البطاقات ===== */
 try{
 /* HAIDER · مرحلة 3 */
 (function(){
@@ -413,8 +412,8 @@ try{
   function done(){root.classList.remove('bb-loading')}
   new MutationObserver(function(){if(L.children.length)done()}).observe(L,{childList:true});
   setTimeout(function(){done();if(!window.haiderSupabase || !window.haiderSupabase.from){var t=document.querySelector('#emptyState .empty-title'),u=document.querySelector('#emptyState .empty-sub');
-    window.__loadErr=1;var rbx=document.getElementById('emptyReset');if(rbx)rbx.textContent='إعادة المحاولة';if(t)t.textContent='تعذّر الاتصال بالمتجر';if(u)u.textContent='تحقق من الاتصال بالإنترنت ثم أعد تحميل الصفحة.'}},7000);
-  if(!matchMedia('(hover:hover) and (pointer:fine)').matches||matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+    if(t)t.textContent='تعذّر الاتصال بالمتجر';if(u)u.textContent='تحقق من الاتصال بالإنترنت ثم أعد تحميل الصفحة.'}},7000);
+  if(!matchMedia('(hover:hover) and (pointer:fine)').matches||REDUCED_MOTION)return;
   function rst(c){['--rx','--ry','--mx','--my'].forEach(function(p){c.style.removeProperty(p)})}
   L.addEventListener('pointermove',function(e){
     var c=e.target.closest('.mod-card');if(cur&&cur!==c)rst(cur);
@@ -424,14 +423,13 @@ try{
     c.style.setProperty('--mx',(x*100)+'%');c.style.setProperty('--my',(y*100)+'%')});
   L.addEventListener('pointerleave',function(){if(cur)rst(cur);cur=null});
 })();
-}catch(err){console.error('[HAIDER] section failed: HAIDER · مرحلة 3',err)}
-;
+}catch(err){console.error('[HAIDER] section failed: loading-and-tilt',err)}
 
-/* ===== [7] HAIDER · مرحلة 4: صوت مولّد بالكود + كريبر + اختصارات ===== */
+/* ===== 6. الصوت + أيقونة التبويب + اختصارات ===== */
 try{
 /* HAIDER · مرحلة 4: صوت مولّد بالكود + كريبر + اختصارات */
 (function(){
-  var AC=null,master,NB=null,muted=false,rm=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var AC=null,master,NB=null,muted=false,rm=REDUCED_MOTION;
   muted=true;try{muted=localStorage.getItem('bb-mute')!=='0'}catch(e){}
   function ctx(){if(!AC){var AudioCtx=window.AudioContext||window.webkitAudioContext;if(!AudioCtx)return null;AC=new AudioCtx();master=AC.createGain();master.gain.value=.4;master.connect(AC.destination)}
     if(AC.state==='suspended')AC.resume().catch(function(){});return AC}
@@ -449,9 +447,7 @@ try{
     click:function(){tone('square',620,420,.06,.1)},
     back:function(){tone('square',420,280,.07,.1)},
     whoosh:function(){noise(.75,'bandpass',250,2400,.5,.3,2);tone('sine',70,220,.6,.25)},
-    xp:function(){var p=900+Math.random()*500;tone('sine',p,p*1.6,.11,.2);tone('sine',p*1.25,p*2,.11,.16,0);setTimeout(function(){tone('sine',p*1.5,p*2.4,.1,.14)},70)},
-    hiss:function(){noise(1.1,'highpass',3500,6000,.4,.9,.5)},
-    boom:function(){noise(.9,'lowpass',2600,110,.9,.05,.7);tone('sine',90,30,.7,.8)}
+    xp:function(){var p=900+Math.random()*500;tone('sine',p,p*1.6,.11,.2);tone('sine',p*1.25,p*2,.11,.16,0);setTimeout(function(){tone('sine',p*1.5,p*2.4,.1,.14)},70)}
   };
 
   /* زرار الكتم */
@@ -465,34 +461,66 @@ try{
   addEventListener('click',function(e){var t=e.target;if(!t.closest)return;
     if(t.closest('a.dl-btn'))return snd.xp();
     if(t.closest('.sheet-close'))return snd.back();
-    if(t.closest('.hb,.mod-card,.more-btn,.logo-stage'))snd.click()},true);
+    if(t.closest('.mod-card,.more-btn'))snd.click()},true);
   new MutationObserver(function(){snd.whoosh()}).observe(document.documentElement,{attributes:true,attributeFilter:['data-dim']});
 
   /* لمسات: أيقونة التبويب + اختصارات */
-  var ic=document.createElement('link');ic.rel='icon';ic.href=document.querySelector('.brand-mark').src;document.head.appendChild(ic);
+  var ic=document.querySelector('link[rel=icon]');if(!ic){ic=document.createElement('link');ic.rel='icon';document.head.appendChild(ic)}ic.href=document.querySelector('.brand-mark').src;
   addEventListener('keydown',function(e){
-    if(e.key==='/'&&!/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)){e.preventDefault();var i=document.getElementById('searchInput');i.focus();i.scrollIntoView({block:'center',behavior:'smooth'})}
     if(e.key==='Escape'){var c=document.querySelector('#detail:not([hidden]) .sheet-close');if(c)c.click()}});
 })();
-}catch(err){console.error('[HAIDER] section failed: HAIDER · مرحلة 4: صوت مولّد بالكود + كريبر + اختصارات',err)}
-;
+}catch(err){console.error('[HAIDER] section failed: sound-and-shortcuts',err)}
 
-/* ===== [8] لوحة الإدارة: الدخول عن طريق  #admin  في آخر رابط الموقع ===== */
+/* ===== 7. لوحة الإدارة (#admin) ===== */
 try{
-/* لوحة الإدارة: الدخول عن طريق  #admin  في آخر رابط الموقع */
+/* Admin panel — open it by adding  #admin  to the end of the site URL.
+ * SECURITY MODEL: nothing in this file is a security boundary. Authorization is enforced
+ * server-side by Supabase RLS + public.is_admin() (supabase/sql/01_admin_and_rls.sql).
+ * The UI only reveals admin controls after the SERVER confirms the signed-in user is an admin,
+ * and any non-admin session is signed out immediately. */
 (function(){
   /* اكتب إيميل حساب الأدمن هنا مرة واحدة (بين العلامتين) وساعتها هيطلب الباسورد بس */
   var ADMIN_EMAIL='';
+  var IDLE_MS=30*60*1000;                 /* auto sign-out after 30 min without activity */
+  var MAX_FAILS=5, LOCK_MS=60*1000;       /* client-side login back-off (Supabase Auth rate-limits server-side) */
+  var CATS=['Addons','Shaders','Versions','Skins'];
+  var LIM={name:150,ver:40,size:40,desc:5000,url:2048,images:20};   /* mirrored by CHECK constraints in SQL */
   var $=function(i){return document.getElementById(i)};
   if(ADMIN_EMAIL)$('admEmailWrap').hidden=true;
-  var ov=$('adminModal'),msg=$('admMsg'),logged=false;
+  var ov=$('adminModal'),msg=$('admMsg'),logged=false,fails=0,lockUntil=0,idleT=0;
   function say(t,ok){msg.textContent=t||'';msg.className=ok?'ok':'err'}
   function client(){return window.haiderSupabase}
   function view(){$('admLogin').hidden=logged;$('admForm').hidden=!logged;$('admFab').hidden=!logged;decorate()}
   function openM(){ov.hidden=false;say('');view()}
   function closeM(){ov.hidden=true;resetEdit()}
+
+  /* Ask the server whether the current session belongs to an admin. Returns 'yes' | 'no' | 'error'. */
+  async function checkAdmin(c){
+    try{var r=await c.rpc('is_admin');if(r.error)return 'error';return r.data===true?'yes':'no'}
+    catch(e){return 'error'}
+  }
+  async function endSession(){
+    var c=client();
+    if(c){try{var r=await c.auth.signOut({scope:'global'});if(r&&r.error)await c.auth.signOut({scope:'local'})}
+      catch(e){try{await c.auth.signOut({scope:'local'})}catch(_){}}}
+    logged=false;clearTimeout(idleT);$('admPass').value='';view();
+  }
+  function bumpIdle(){
+    if(!logged)return;clearTimeout(idleT);
+    idleT=setTimeout(function(){endSession().then(closeM)},IDLE_MS);
+  }
+  ['pointerdown','keydown','touchstart'].forEach(function(t){addEventListener(t,bumpIdle,{passive:true})});
+
   function init(){var c=client();if(!c)return;
-    c.auth.getSession().then(function(r){logged=!!(r.data&&r.data.session);view()})}
+    c.auth.getSession().then(async function(r){
+      if(!(r.data&&r.data.session)){logged=false;view();return}
+      var a=await checkAdmin(c);
+      if(a==='no'){await endSession();return}      /* signed in but not an admin -> drop the session */
+      logged=(a==='yes');view();bumpIdle();           /* 'error' (offline): stay logged out in the UI, keep session */
+    });
+    /* session expired / signed out in another tab -> hide admin controls (flags + DOM only, no Supabase calls) */
+    c.auth.onAuthStateChange(function(ev,sess){if(!sess&&logged){logged=false;view()}});
+  }
   if(client())init();else addEventListener('haider-sb-ready',init,{once:true});
   function checkHash(){if(location.hash==='#admin'){openM();try{history.replaceState(null,'',location.pathname+location.search)}catch(e){}}}
   addEventListener('hashchange',checkHash);checkHash();
@@ -502,20 +530,30 @@ try{
   addEventListener('keydown',function(e){if(e.key==='Escape'&&!ov.hidden)closeM()});
   $('admLoginBtn').addEventListener('click',async function(){
     var c=client();if(!c){say('الاتصال لسه مجهزش، جرّب بعد لحظات');return}
+    var wait=Math.ceil((lockUntil-Date.now())/1000);
+    if(wait>0){say('محاولات كتير — استنى '+wait+' ثانية وجرّب تاني');return}
     var e=ADMIN_EMAIL||$('admEmail').value.trim(),p=$('admPass').value;
     if(!e||!p){say(ADMIN_EMAIL?'اكتب كلمة المرور':'اكتب الإيميل وكلمة المرور');return}
     say('جاري الدخول...',1);
     try{var r=await c.auth.signInWithPassword({email:e,password:p});if(r.error)throw r.error;
-      logged=true;$('admPass').value='';view();say('تم الدخول ✓',1)}
-    catch(x){var m=(x&&x.message)||'';
-      say(/failed to fetch|network|load failed/i.test(m)?'مش قادر أوصل للعنوان: '+String(window.HAIDER_SUPABASE_URL||'').replace('https://','')+' — قارنه بعنوان مشروعك في Supabase وتأكد إن النت شغال':/Invalid login/i.test(m)?'الباسورد غلط أو مفيش مستخدم بالإيميل ده في Supabase':/not confirmed/i.test(m)?'الإيميل لسه متفعّلش في Supabase':'فشل الدخول: '+m)}
+      var a=await checkAdmin(c);
+      if(a!=='yes'){
+        await endSession();
+        say(a==='no'?'الحساب ده مش مسجّل كأدمن':'تعذّر التحقق من صلاحيات الإدارة، جرّب تاني');
+        return;
+      }
+      fails=0;logged=true;$('admPass').value='';view();bumpIdle();say('تم الدخول ✓',1)}
+    catch(x){
+      if(++fails>=MAX_FAILS)lockUntil=Date.now()+LOCK_MS*Math.pow(2,Math.min(fails-MAX_FAILS,4));
+      var m=(x&&x.message)||'';
+      say(/failed to fetch|network|load failed/i.test(m)?'مش قادر أوصل للسيرفر — تأكد إن النت شغال وجرّب تاني':/Invalid login/i.test(m)?'الإيميل أو الباسورد غلط':/not confirmed/i.test(m)?'الإيميل لسه متفعّلش في Supabase':'فشل الدخول: '+m)}
   });
   /* ===== وضع التعديل / الحذف (للأدمن فقط) ===== */
   var editId=null;
-  /* قائمة الصور: صورة واحدة أو أكتر، من غير حد ثابت */
+  /* قائمة الصور: صورة واحدة أو أكتر (حد أقصى LIM.images) */
   function addImgRow(v){
     var r=document.createElement('div');r.className='adm-imgrow';
-    var i=document.createElement('input');i.type='url';i.dir='ltr';i.placeholder='https://...';i.value=v||'';i.setAttribute('aria-label','رابط صورة');
+    var i=document.createElement('input');i.type='url';i.dir='ltr';i.placeholder='https://...';i.maxLength=LIM.url;i.value=v||'';i.setAttribute('aria-label','رابط صورة');
     var x=document.createElement('button');x.type='button';x.textContent='×';x.setAttribute('aria-label','حذف الصورة');
     x.addEventListener('click',function(){r.remove();if(!$('admImgList').children.length)addImgRow('')});
     r.appendChild(i);r.appendChild(x);$('admImgList').appendChild(r);return i;
@@ -528,13 +566,16 @@ try{
   function getImgs(){
     return Array.prototype.map.call($('admImgList').querySelectorAll('input'),function(e){return e.value.trim()}).filter(Boolean);
   }
-  $('admAddImg').addEventListener('click',function(){addImgRow('').focus()});
+  $('admAddImg').addEventListener('click',function(){
+    if($('admImgList').children.length>=LIM.images){say('الحد الأقصى '+LIM.images+' صورة');return}
+    addImgRow('').focus();
+  });
   setImgs([]);
   function resetEdit(){
     editId=null;$('admName').value='';$('admDl').value='';setImgs([]);$('admVer').value='';$('admSize').value='';$('admDesc').value='';
     $('admTitle').textContent='إضافة عنصر جديد';$('admAddBtn').textContent='نشر العنصر';$('admCancelEdit').hidden=true;
   }
-  function allList(){return (typeof allMods!=='undefined')?allMods:[]}
+  function allList(){return window.HAIDER?window.HAIDER.getMods():[]}
   function findMod(id){return allList().find(function(x){return x&&x.id!=null&&String(x.id)===id})}
   function decorate(){
     var L=$('modList');if(!L)return;
@@ -567,16 +608,30 @@ try{
         var r=await c.from('mods').delete().eq('id',m.id).select('id');
         if(r.error)throw r.error;
         if(!r.data||!r.data.length)throw new Error('مفيش صلاحية للحذف — راجع سياسات Supabase (RLS)');
-        if(typeof loadModsFromSupabase==='function')loadModsFromSupabase();
+        if(window.HAIDER)window.HAIDER.reload();
       }catch(x){btn.disabled=false;alert('فشل الحذف: '+((x&&x.message)||'خطأ غير معروف'))}
     }
   },true);
   $('admCancelEdit').addEventListener('click',function(){resetEdit();say('')});
+  /* Strict https-only URL check; returns the normalised URL, or null when invalid. */
+  function cleanUrl(u){
+    try{
+      if(!u||u.length>LIM.url)return null;
+      var x=new URL(u);
+      if(x.protocol!=='https:'||x.username||x.password)return null;
+      return x.href;
+    }catch(e){return null}
+  }
   $('admAddBtn').addEventListener('click',async function(){
-    var c=client(),b=this;if(!c)return;
-    var name=$('admName').value.trim(),cat=$('admCat').value,dl=$('admDl').value.trim(),ver=$('admVer').value.trim(),size=$('admSize').value.trim(),desc=$('admDesc').value.trim(),all=getImgs(),img=all[0]||'',imgs=all.slice(1);
-    if(!name&&!dl&&!desc&&!ver&&!size&&!all.length){say('املأ أي خانة على الأقل');return}
-    if((dl&&!/^https?:\/\//i.test(dl))||(img&&!/^https?:\/\//i.test(img))||imgs.some(function(u){return !/^https?:\/\//i.test(u)})){say('الروابط لازم تبدأ بـ https://');return}
+    var c=client(),b=this;if(!c||!logged)return;
+    var name=$('admName').value.trim(),cat=$('admCat').value,dlRaw=$('admDl').value.trim(),ver=$('admVer').value.trim(),size=$('admSize').value.trim(),desc=$('admDesc').value.trim(),allRaw=getImgs();
+    if(!name){say('اكتب اسم العنصر');return}
+    if(CATS.indexOf(cat)<0){say('النوع غير صحيح');return}
+    if(name.length>LIM.name||ver.length>LIM.ver||size.length>LIM.size||desc.length>LIM.desc){say('أحد الحقول أطول من الحد المسموح');return}
+    if(allRaw.length>LIM.images){say('الحد الأقصى '+LIM.images+' صورة');return}
+    var dl=dlRaw?cleanUrl(dlRaw):'',all=allRaw.map(cleanUrl);
+    if(dl===null||all.some(function(u){return u===null})){say('الروابط لازم تبدأ بـ https:// وتكون صحيحة (من غير يوزر أو باسورد جواها)');return}
+    var img=all[0]||'',imgs=all.slice(1);
     var editing=!!editId;
     b.disabled=true;say(editing?'جاري الحفظ...':'جاري النشر...',1);
     try{
@@ -591,26 +646,21 @@ try{
       }
       resetEdit();
       say(editing?'تم حفظ التعديلات ✓':'تمت الإضافة ✓ وظهرت في القسم',1);
-      if(typeof loadModsFromSupabase==='function')loadModsFromSupabase();
+      if(window.HAIDER)window.HAIDER.reload();
     }catch(x){say((editing?'فشل الحفظ: ':'فشل النشر: ')+((x&&x.message)||'خطأ غير معروف'))}
     finally{b.disabled=false}
   });
   $('admLogout').addEventListener('click',async function(){
-    var c=client();if(c){try{await c.auth.signOut()}catch(e){}}
-    logged=false;view();closeM();
+    await endSession();closeM();
   });
 })();
-}catch(err){console.error('[HAIDER] section failed: لوحة الإدارة: الدخول عن طريق  #admin  في آخر رابط الموقع',err)}
-;
+}catch(err){console.error('[HAIDER] section failed: admin',err)}
 
-/* ===== [9] section-9 ===== */
-;
-
-/* ===== [10] HAIDER · PORTAL — فتح البوابة + شريط XP + لمعة الندرة + انفج ===== */
+/* ===== 8. التأثيرات: شريط XP + انفجار التحميل + الثيم + طيران الصورة ===== */
 try{
 /* HAIDER · PORTAL — فتح البوابة + شريط XP + لمعة الندرة + انفجار التحميل */
 (function(){
-var d=document,B=d.body,rm=matchMedia('(prefers-reduced-motion: reduce)').matches;
+var d=document,B=d.body,rm=REDUCED_MOTION;
 function $(t,c){var e=d.createElement(t);if(c)e.className=c;return e}
 var xp=$('div');xp.id='zxp';xp.appendChild($('i'));B.appendChild(xp);var f=xp.firstChild,tk=0;
 function sc(){tk=0;var h=d.documentElement.scrollHeight-innerHeight;f.style.transform='scaleX('+(h>0?Math.min(scrollY/h,1):0)+')'}
@@ -632,8 +682,7 @@ d.addEventListener('click',function(e){
   a.classList.add('mine');setTimeout(function(){a.classList.remove('mine')},400)
 },true);
 /* دفعة 2 */
-var lx=innerWidth/2,ly=innerHeight/2,AC=null;
-addEventListener('pointerdown',function(e){lx=e.clientX;ly=e.clientY},{capture:true,passive:true});
+var AC=null;
 function au(){var mu=1;try{mu=localStorage.getItem('bb-mute')!=='0'}catch(e){}if(mu)return null;
   if(!AC){var AudioCtx=window.AudioContext||window.webkitAudioContext;if(!AudioCtx)return null;AC=new AudioCtx()}
   if(AC.state==='suspended')AC.resume().catch(function(){});return AC}
@@ -641,14 +690,14 @@ function tone(c,ty,f0,f1,t0,du,v){var o=c.createOscillator(),g=c.createGain(),t=
   g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+.02);g.gain.exponentialRampToValueAtTime(.0001,t+du);o.connect(g);g.connect(c.destination);o.start(t);o.stop(t+du+.05)}
 function zxp(){var c=au();if(!c)return;tone(c,'sine',700,1400,0,.12,.12);tone(c,'sine',900,1800,.09,.14,.1);tone(c,'triangle',1200,2400,.2,.2,.06)}
 d.addEventListener('click',function(e){if(e.target.closest('.dl-btn:not(.is-off):not(.view-btn)'))zxp()},true);
-var R=d.documentElement,dim=R.getAttribute('data-dim');
+var R=d.documentElement;
 
 if('IntersectionObserver' in window&&L){
   var io=new IntersectionObserver(function(es){es.forEach(function(en){en.target.classList.toggle('vis',en.isIntersecting)})},{rootMargin:'40px'});
   function sk(){L.querySelectorAll('.k-skin:not(.zs)').forEach(function(c){c.classList.add('zs');var t=c.querySelector('.mod-thumb');if(t)t.appendChild($('i','zped'));io.observe(c)})}
   new MutationObserver(sk).observe(L,{childList:true});sk()}
 var TH=['end','nether','emerald'],TC={end:['#a855f7','#c084fc'],nether:['#7c3aed','#c084fc'],emerald:['#a855f7','#d8b4fe']},ct='end';
-try{ct=localStorage.getItem('zth')||'end'}catch(e){}if(!TC[ct])ct='end';
+try{ct=localStorage.getItem('zth')||'end'}catch(e){}if(!Object.prototype.hasOwnProperty.call(TC,ct))ct='end';
 var hi=d.querySelector('.header-inner');
 if(hi){var tb=$('button','hdr-btn'),sw=$('i');tb.id='thBtn';tb.type='button';tb.setAttribute('aria-label','تغيير الثيم');tb.setAttribute('data-tip','تغيير الثيم');
   sw.style.background='linear-gradient(135deg,'+TC[ct][0]+','+TC[ct][1]+')';sw.style.boxShadow='0 0 10px '+TC[ct][0];tb.appendChild(sw);hi.appendChild(tb);
@@ -664,7 +713,7 @@ if(DT)new MutationObserver(function(){
   var sh=DT.querySelector('.sheet');if(!sh)return;
   if(DT.hidden){sh.style.animation='';return}
   var from=zf;zf=null;
-  if(!rm)DT.querySelectorAll('.tt-cat,.tt-row,.tt-tags,.tt-how,.d-desc,.d-dl').forEach(function(e,i){
+  if(!rm)DT.querySelectorAll('.tt-tags,.d-desc,.d-dl').forEach(function(e,i){
     e.animate([{opacity:0,transform:'translateY(10px)'},{opacity:1,transform:'none'}],{duration:320,delay:140+i*38,easing:'ease-out',fill:'backwards'})});
   var im=DT.querySelector('.tt-img img');
   if(rm||!from||!from.s||Date.now()-from.t>900||!im)return;
@@ -692,31 +741,31 @@ if(si)si.addEventListener('input',function(){var v=si.value.trim().toLowerCase()
       {duration:1500+Math.random()*1300,delay:Math.random()*900,easing:'cubic-bezier(.3,0,.7,1)',fill:'backwards'}).onfinish=function(){q.remove()}})()}
   setTimeout(function(){rn=0},3300)});
 })();
-}catch(err){console.error('[HAIDER] section failed: HAIDER · PORTAL — فتح البوابة + شريط XP + لمعة الندرة + انفج',err)}
-;
+}catch(err){console.error('[HAIDER] section failed: effects',err)}
 
-/* ===== [11] Header nav ===== */
+/* ===== 9. قائمة الهيدر ===== */
 /* Header nav */
 document.addEventListener('click',function(e){
   var a=e.target.closest('.hnav a');if(!a)return;e.preventDefault();
   var c=a.getAttribute('data-nav');
-  if(typeof filterMods==='function')filterMods(c,null);
+  if(window.HAIDER)window.HAIDER.setCategory(c);
   if(c==='All')window.scrollTo({top:0,behavior:'smooth'});
   else{var z=document.querySelector('.search-zone');if(z)z.scrollIntoView({behavior:'smooth'});}
   document.querySelectorAll('.hnav a').forEach(function(x){x.classList.toggle('active',x===a)});
 });
-;
 
-/* ===== [12] section-12 ===== */
+/* ===== 10. SEO + حبس التركيز داخل صفحة التفاصيل ===== */
 try{
 (function(){if(/^https?:/.test(location.protocol)&&!document.querySelector('link[rel=canonical]')){var l=document.createElement('link');l.rel='canonical';l.href=location.origin+location.pathname;document.head.appendChild(l)}
+  if(/^https?:/.test(location.protocol)&&!document.querySelector('script[type="application/ld+json"]')){try{var ld=document.createElement('script');ld.type='application/ld+json';ld.textContent=JSON.stringify({'@context':'https://schema.org','@type':'WebSite',name:'HAIDER',url:location.origin+location.pathname,inLanguage:'ar',description:document.querySelector('meta[name=description]').content});document.head.appendChild(ld)}catch(e){}}
 var P=document.getElementById('sheetPanel');if(!P)return;
 P.addEventListener('keydown',function(e){if(e.key!=='Tab')return;var f=P.querySelectorAll('a[href],button:not([disabled]),[tabindex]:not([tabindex="-1"])');if(!f.length)return;var a=f[0],z=f[f.length-1];
 if(e.shiftKey&&document.activeElement===a){e.preventDefault();z.focus()}else if(!e.shiftKey&&document.activeElement===z){e.preventDefault();a.focus()}})})();
-}catch(err){console.error('[HAIDER] section failed: section-12',err)}
-;
+}catch(err){console.error('[HAIDER] section failed: seo-and-focus-trap',err)}
 
-/* ===== [13] معرض الصور: تبديل بالأسهم / الصور المصغرة / لوحة المفاتيح / ===== */
+/* ===== 11. معرض الصور ===== */
+try{
+(function(){
 /* معرض الصور: تبديل بالأسهم / الصور المصغرة / لوحة المفاتيح / السحب */
 function hdrGal(el,step,root){
   var dp=(root||el.closest('.dp'));if(!dp)return;
@@ -745,19 +794,27 @@ document.addEventListener('keydown',function(e){
     var dp=document.querySelector('#detail .dp');if(dp)hdrGal(null,dx<0?1:-1,dp);
   },{passive:true});
 })();
-;
+/* بديل onclick المضمّن (يسمح بإزالة 'unsafe-inline' من script-src) */
+document.addEventListener('click',function(e){
+  var g=e.target.closest&&e.target.closest('[data-gal]');
+  if(!g)return;
+  var step=+g.getAttribute('data-gal');
+  if(step!==0)e.stopPropagation();
+  hdrGal(g,step);
+},true);
+})();
+}catch(err){console.error('[HAIDER] section failed: gallery',err)}
 
-/* ===== [14] QA: back-to-top button (was static + had no handler) ===== */
+/* ===== 12. زر العودة للأعلى ===== */
 try{
 /* QA: back-to-top button (was static + had no handler) */
 (function(){var b=document.getElementById('toTop');if(!b)return;var t=0;
 function u(){t=0;b.classList.toggle('show',scrollY>600)}
 addEventListener('scroll',function(){if(!t)t=requestAnimationFrame(u)},{passive:true});
-b.addEventListener('click',function(){var rm=matchMedia('(prefers-reduced-motion: reduce)').matches;scrollTo({top:0,behavior:rm?'auto':'smooth'})});u()})();
-}catch(err){console.error('[HAIDER] section failed: QA: back-to-top button (was static + had no handler)',err)}
-;
+b.addEventListener('click',function(){var rm=REDUCED_MOTION;scrollTo({top:0,behavior:rm?'auto':'smooth'})});u()})();
+}catch(err){console.error('[HAIDER] section failed: back-to-top',err)}
 
-/* ===== [15] section-15 ===== */
+/* ===== 13. مسح البحث + حالة الفراغ + ظل الهيدر ===== */
 try{
 (function(){
   var $=function(i){return document.getElementById(i)};
@@ -769,7 +826,7 @@ try{
     inp.addEventListener('keydown',function(e){if(e.key==='Escape'&&inp.value){e.preventDefault();clr.click()}});
     document.addEventListener('keydown',function(e){
       var t=e.target,typing=t&&(/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)||t.isContentEditable);
-      if(e.key==='/'&&!typing&&!e.ctrlKey&&!e.metaKey&&!e.altKey){e.preventDefault();inp.focus();inp.select()}
+      if(e.key==='/'&&!typing&&!e.ctrlKey&&!e.metaKey&&!e.altKey){e.preventDefault();inp.focus();inp.select();inp.scrollIntoView({block:'center',behavior:'smooth'})}
     });
   }
   var es=$('emptyState'),rb=$('emptyReset'),et=$('emptyTitle'),esub=$('emptySub');
@@ -780,22 +837,11 @@ try{
   if(es){new MutationObserver(emptyMode).observe(es,{attributes:true,attributeFilter:['hidden']});emptyMode()}
   if(rb)rb.addEventListener('click',function(){
     if(window.__loadErr){location.reload();return}
-    if(typeof resetFilters==='function')resetFilters();else if(typeof filterMods==='function')filterMods('All',null);
-    if(inp){inp.value='';if(clr)clr.hidden=true}
+    if(inp){inp.value='';if(clr)clr.hidden=true;inp.dispatchEvent(new Event('input',{bubbles:true}))}
+    if(window.HAIDER)window.HAIDER.setCategory('All');
   });
   var hd=document.querySelector('header');
   if(hd){var tick=function(){hd.classList.toggle('is-scrolled',window.scrollY>8)};addEventListener('scroll',tick,{passive:true});tick()}
 })();
-}catch(err){console.error('[HAIDER] section failed: section-15',err)}
-;
+}catch(err){console.error('[HAIDER] section failed: search-and-empty-state',err)}
 
-/* ===== delegated handlers — بديل onclick المضمّن (يسمح بإزالة 'unsafe-inline' من script-src) ===== */
-(function(){
-  document.addEventListener('click',function(e){
-    var g=e.target.closest&&e.target.closest('[data-gal]');
-    if(!g)return;
-    var step=+g.getAttribute('data-gal');
-    if(step!==0)e.stopPropagation();
-    hdrGal(g,step);
-  },true);
-})();
