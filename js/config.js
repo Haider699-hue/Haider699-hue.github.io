@@ -24,7 +24,7 @@ export const OPTIONAL_COLUMNS = ['updated_at', 'images'];
  * وتبقى متاحة لو فشل الاتصال. ارفع version عند تغيير شكل الصف المحفوظ كي تُهمَل النسخ القديمة. */
 export const CATALOG_CACHE = { version: 1, maxAgeMs: 7 * 24 * 60 * 60 * 1000, maxChars: 1500000 };
 
-export const YOUTUBE_URL = 'https://www.youtube.com/@Haider-f6c1j';
+/* رابط قناة يوتيوب ثابت في index.html (.yt-link)؛ لا حاجة لثابت هنا بعد حذف البوابة الحاجبة. */
 export const SITE_TITLE = 'HAIDER — إضافات ماينكرافت بيدروك';
 /* بعد رفع صفحات build-pages.mjs اكتب هنا '/m/' لتصبح روابط المشاركة صفحات ثابتة. */
 export const SHARE_PAGES_PREFIX = '';
@@ -39,12 +39,13 @@ export const DEFAULT_SORT = 'downloads';
 
 export const MOD_TYPES = ['mcpack', 'mcaddon', 'mcworld', 'apk', 'other'];
 
-/* التصنيفات. المفتاح = قيمة category في قاعدة البيانات. kind = كلاس نوع البطاقة في CSS. */
+/* التصنيفات. المفتاح = قيمة category في قاعدة البيانات. kind = كلاس نوع البطاقة في CSS.
+ * token = اسم القسم في باليتة الألوان (--cat-<token> و-soft و-ink في styles.css). label = اسم القسم المعرّف («ال») في كل مكان يظهر فيه كاسم قسم. */
 export const CATEGORIES = {
-  Addons:   { label: 'مودات',             color: 'var(--emerald)',  icon: 'i-addons',   route: 'addons',   kind: 'k-addon'  },
-  Versions: { label: 'إصدارات ماينكرافت', color: 'var(--diamond)',  icon: 'i-versions', route: 'versions', kind: 'k-ver'    },
-  Skins:    { label: 'السكنات',           color: 'var(--gold)',     icon: 'i-skins',    route: 'skins',    kind: 'k-skin'   },
-  Shaders:  { label: 'الشادرات',          color: 'var(--amethyst)', icon: 'i-shaders',  route: 'shaders',  kind: 'k-shader' }
+  Addons:   { label: 'الإضافات',  token: 'addons',   color: 'var(--cat-addons)', icon: 'i-addons',   route: 'addons',   kind: 'k-addon'  },
+  Versions: { label: 'الإصدارات', token: 'versions', color: 'var(--cat-versions)', icon: 'i-versions', route: 'versions', kind: 'k-ver'    },
+  Skins:    { label: 'السكنات',   token: 'skins',    color: 'var(--cat-skins)', icon: 'i-skins',    route: 'skins',    kind: 'k-skin'   },
+  Shaders:  { label: 'الشيدرات',  token: 'shaders',  color: 'var(--cat-shaders)', icon: 'i-shaders',  route: 'shaders',  kind: 'k-shader' }
 };
 /* ترتيب ظهور الأقسام في عرض "الكل". */
 export const GROUP_ORDER = ['Addons', 'Skins', 'Shaders', 'Versions'];
@@ -53,10 +54,13 @@ export const ROUTE_TO_CATEGORY = Object.fromEntries(
   [['all', 'All'], ...Object.entries(CATEGORIES).map(([cat, meta]) => [meta.route, cat])]
 );
 
-/* بيانات عرض تصنيف حتى لو كان غير معروف (قيمة قديمة في قاعدة البيانات مثلًا). */
-export function categoryMeta(cat, fallbackColor = '#fff') {
-  return CATEGORIES[cat] || { label: cat, color: fallbackColor, icon: 'i-all', route: '', kind: 'k-addon' };
+/* بيانات عرض تصنيف حتى لو كان غير معروف (قيمة قديمة في قاعدة البيانات مثلًا): يأخذ ألوان الهوية. */
+export function categoryMeta(cat) {
+  return CATEGORIES[cat] || { label: cat, token: 'brand', color: 'var(--cat-brand)', icon: 'i-all', route: '', kind: 'k-addon' };
 }
+
+/* قيمة style لعنصر يحمل ألوان قسمه: base / soft / ink (انظر باليتة الأقسام في styles.css). */
+export const categoryStyle = meta => '--cat-color:var(--cat-' + meta.token + ');--cat-soft:var(--cat-' + meta.token + '-soft);--cat-ink:var(--cat-' + meta.token + '-ink)';
 
 /* لوحة الإدارة. الحدود تقابلها قيود CHECK في SQL. */
 export const ADMIN = {
@@ -69,4 +73,4 @@ export const ADMIN = {
 };
 
 /* مفاتيح التخزين المحلي. */
-export const STORAGE = { theme: 'zth', mute: 'bb-mute', ytGate: 'ytGateDone', dlPrefix: 'dl:', catalog: 'bb-catalog' };
+export const STORAGE = { mute: 'bb-mute', dlPrefix: 'dl:', catalog: 'bb-catalog' };
