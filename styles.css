@@ -546,3 +546,12 @@
 @keyframes zfade{from{opacity:0;transform:translateY(8px)}}
 @keyframes toast-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 @keyframes sk-pulse{to{background-position:-200% 0}}
+
+/* موبايل: كارت رأسي بصورة كاملة العرض */
+@media (max-width:640px){
+  .mod-card{flex-direction:column}
+  .mod-thumb{flex:none;width:100%;aspect-ratio:16/9}
+  .mod-body{justify-content:flex-start;padding:var(--s-3);gap:var(--s-2)}
+  .mod-spec{flex-wrap:wrap}
+  .mod-desc{-webkit-line-clamp:2}
+}
