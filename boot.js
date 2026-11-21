@@ -12,14 +12,7 @@
     return;
   }
 
-  /* 1) تطبيق الثيم المحفوظ قبل الرسم (يمنع وميض الثيم الافتراضي).
-   *    الثيم الافتراضي "end" بلا data-th. القائمة الكاملة وألوانها في js/features/theme.js. */
-  var THEMES = ['nether', 'emerald'];
-  var saved;
-  try { saved = localStorage.getItem('zth'); } catch (e) {}
-  if (THEMES.indexOf(saved) > -1) document.documentElement.setAttribute('data-th', saved);
-
-  /* 2) مراقب الإقلاع: لو لم تعمل الوحدات (متصفح لا يدعم ES modules، ملف مفقود، خطأ صياغة، شبكة ميتة)
+  /* 1) مراقب الإقلاع: لو لم تعمل الوحدات (متصفح لا يدعم ES modules، ملف مفقود، خطأ صياغة، شبكة ميتة)
    *    فلا يبقى الزائر أمام "جاري التحميل…" للأبد. app.js يعرّف window.HAIDER في آخره، وغيابه = فشل الإقلاع. */
   var BOOT_TIMEOUT_MS = 20000;
   var bootFailed = function () {
@@ -43,7 +36,7 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', watchBoot);
   else watchBoot();
 
-  /* 3) تحميل الخطوط دون حجب العرض (بديل onload المضمّن الذي يمنعه الـCSP) */
+  /* 2) تحميل الخطوط دون حجب العرض (بديل onload المضمّن الذي يمنعه الـCSP) */
   var link = document.querySelector('link[data-async-css]');
   if (!link) return;
   var show = function () { link.media = 'all'; };
