@@ -6,8 +6,8 @@
  *   load:failed {kind, stale}   فشل تحميل/تحديث العناصر (kind: انظر lib/errors.js · stale: توجد بيانات قديمة معروضة)
  *   list:rendered {count}       اكتمل رسم/إضافة بطاقات في القائمة
  *   detail:opened / detail:closed   فُتحت/أُغلقت صفحة التفاصيل
- *   dimension:changed           تغيّر "البُعد" البصري (الجسيمات)
- *   theme:changed               تغيّر الثيم */
+ *   detail:rendered             رُسم محتوى صفحة التفاصيل (يشمل التنقل بين عنصرين ذوي صلة دون إغلاق) — المعرض يحمّل الصورة التالية مسبقًا
+ *   dimension:changed           تغيّر "البُعد" البصري (الجسيمات) */
 import { log } from './log.js';
 
 const target = new EventTarget();
