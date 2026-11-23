@@ -174,6 +174,7 @@ export function initAdmin() {
     const row = create('div', 'adm-imgrow');
     const input = create('input');
     input.type = 'url'; input.dir = 'ltr'; input.placeholder = 'https://...'; input.maxLength = limits.url;
+    input.setAttribute('inputmode', 'url'); input.setAttribute('enterkeyhint', 'next');
     input.value = value || '';
     input.setAttribute('aria-label', 'رابط صورة');
     const remove = create('button');

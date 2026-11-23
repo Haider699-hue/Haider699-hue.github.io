@@ -1,4 +1,4 @@
-/* تأثيرات الصفحة: شريط XP، انفجار زر التحميل، ليفل-أب عند آخر الصفحة، وبيضة "الألماس" في البحث. */
+/* تأثيرات الصفحة: انفجار زر التحميل، ليفل-أب عند آخر الصفحة، وبيضة "الألماس" في البحث. */
 import { byId, create, prefersReducedMotion } from '../lib/dom.js';
 import { onScroll } from '../lib/scroll.js';
 import { sounds } from './audio.js';
@@ -8,15 +8,6 @@ const DOWNLOAD_BTN = '.dl-btn:not(.is-off):not(.view-btn)';
 const DIAMOND_WORDS = ['diamond', 'الماس', 'ألماس'];
 const BURST_FLASH_MS = 400;      /* مدة وهج زر التحميل بعد الانفجار */
 const DIAMOND_COOLDOWN_MS = 3300; /* لا تتكرر بيضة الألماس قبل انتهاء السقوط */
-
-/* شريط تقدّم التمرير أعلى الصفحة. */
-function initXpBar() {
-  const bar = create('div'), fill = create('i');
-  bar.id = 'zxp';
-  bar.appendChild(fill);
-  document.body.appendChild(bar);
-  onScroll(({ y, max }) => { fill.style.transform = 'scaleX(' + (max > 0 ? Math.min(y / max, 1) : 0) + ')'; }, { immediate: true, onResize: true });
-}
 
 /* شظايا تنطلق من زر التحميل + نغمة التحميل + لمسة على الزر. */
 function initDownloadBurst() {
@@ -78,7 +69,6 @@ function initDiamondEgg() {
 }
 
 export function initPageEffects() {
-  initXpBar();
   initDownloadBurst();
   initLevelUp();
   initDiamondEgg();

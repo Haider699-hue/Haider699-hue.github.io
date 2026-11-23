@@ -1,21 +1,23 @@
 /* محرك الجسيمات الخلفي: لكل "بُعد" (تصنيف) شكل وسلوك وألوان. يرسم على canvas ثابت خلف المحتوى.
  * الأداء: يتوقف تمامًا (لا رسم ولا طلب إطار) حين تكون الجسيمات غير مرئية — صفحة التفاصيل مفتوحة (تغطي الشاشة)،
- * أو التبويب مخفي — ويستأنف تلقائيًا. معدل الرسم محدود (30 إطارًا/ث على الأجهزة اللمسية وضعيفة المعالج، 60 على غيرها
+ * أو التبويب مخفي — ويستأنف تلقائيًا؛ ويتوقف نهائيًا في الجلسة لو الجهاز اللمسي/الضعيف لا يحافظ على 45 إطارًا/ث (حارس FPS)،
+ * ويتبع تفضيل «تقليل الحركة» لحظيًا لو تغيّر أثناء الجلسة. معدل الرسم محدود (30 إطارًا/ث على الأجهزة اللمسية وضعيفة المعالج، 60 على غيرها
  * حتى على شاشات 120Hz) والحركة تعتمد على الزمن الفعلي فلا تتغير سرعتها. تغيير الحجم يُؤجَّل ولا يعيد تخصيص الـcanvas بلا داعٍ. */
 import { prefersReducedMotion } from '../lib/dom.js';
 import { state } from '../state.js';
 import { on, emit } from '../lib/bus.js';
-import { themeColors } from './theme.js';
 import { log } from '../lib/log.js';
 
-/* ألوان "All" تأتي من الثيم الحالي. */
+/* ألوان كل بُعد = أسماء tokens من styles.css (الباليتة مصدر واحد): تُقرأ وقت البناء لأن الـcanvas لا يفهم var().
+ * tokens[0] = اللون الأساسي للقسم، tokens[1] = درجة الـink (الأفتح). "All" = لون الهوية. */
 const DIMENSIONS = {
-  All:      { type: 'mote' },
-  Addons:   { colors: ['#3ddc84', '#c6f25a'], type: 'orb' },
-  Skins:    { colors: ['#ff8a2b', '#ff3d3d'], type: 'ember' },
-  Shaders:  { colors: ['#c05cff', '#ff6bd6'], type: 'glyph' },
-  Versions: { colors: ['#4cc9ff', '#a8e6ff'], type: 'snow' }
+  All:      { tokens: ['--brand-500', '--brand-300'],       type: 'mote' },
+  Addons:   { tokens: ['--cat-addons', '--cat-addons-ink'],     type: 'orb' },
+  Skins:    { tokens: ['--cat-skins', '--cat-skins-ink'],       type: 'ember' },
+  Shaders:  { tokens: ['--cat-shaders', '--cat-shaders-ink'],   type: 'glyph' },
+  Versions: { tokens: ['--cat-versions', '--cat-versions-ink'], type: 'snow' }
 };
+const tokenColor = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 /* vy: مدى السرعة الرأسية · sway: انحراف أفقي · alpha: الشفافية · pulse: نبض · fade: يتلاشى مع العمر */
 const BEHAVIOR = {
   mote:  { vy: [-0.35, -0.1], sway: 0,    alpha: 0.6 },
@@ -24,11 +26,15 @@ const BEHAVIOR = {
   glyph: { vy: [-0.4, -0.12], sway: 0.15, alpha: 0.75 },
   snow:  { vy: [0.3, 0.8],    sway: 0.4,  alpha: 0.85 }
 };
+/* حارس الأداء: الجسيمات تجميلية فلا تُبطّئ التمرير. نقيس معدل إطارات الصفحة نفسها (rAF) على نوافذ ثابتة. */
+const FPS_MIN = 45;
+const FPS_WINDOW_MS = 1500;
+const FPS_STRIKES = 2;     /* نافذتان متتاليتان تحت الحد (تفادي عثرة واحدة مثل فك ترميز صورة) */
 const GLYPHS = ['ᔑ', 'ʖ', 'ᓵ', '↸', 'ᒷ', '⎓', '⊣', '⍑', '╎', '⋮', 'ꖌ', 'ꖎ', 'ᒲ', 'リ', 'ᑑ', '∷', 'ᓭ', 'ℸ', '⚍', '⍊', '∴', '⨅'];
 
 export function initParticles() {
   const root = document.documentElement;
-  const reduced = prefersReducedMotion();
+  let reduced = prefersReducedMotion();
 
   const canvas = document.createElement('canvas');
   canvas.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:-1';
@@ -51,6 +57,7 @@ export function initParticles() {
   const RESIZE_DEBOUNCE_MS = 150;
   let W = 0, H = 0, particles = [], sprites = [], behavior = BEHAVIOR.mote, last = 0, running = false, current = '', rafId = 0;
   let detailOpen = false;
+  let fpsStart = 0, fpsFrames = 0, fpsStrikes = 0, fpsWarm = true; /* fpsWarm: أول نافذة بعد كل استئناف تُهمَل (الاستئناف نفسه يسبب فجوة) */
 
   function resize() {
     const w = innerWidth, h = innerHeight;
@@ -74,11 +81,12 @@ export function initParticles() {
   }
 
   function makeSprites(dim) {
-    const [c0, c1] = dim.colors || themeColors();
+    const [c0, c1] = dim.tokens.map(tokenColor);
+    const light = tokenColor('--n-5');
     if (dim.type === 'orb') {
       return [10, 14, 18].map(s => makeSprite(s, s, c => {
         const g = c.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);
-        g.addColorStop(0, '#f6ffc8'); g.addColorStop(0.45, c1); g.addColorStop(1, 'rgba(0,0,0,0)');
+        g.addColorStop(0, light); g.addColorStop(0.45, c1); g.addColorStop(1, 'rgba(0,0,0,0)');
         c.fillStyle = g; c.fillRect(0, 0, s, s);
       }));
     }
@@ -89,7 +97,7 @@ export function initParticles() {
         c.fillText(GLYPHS[(Math.random() * GLYPHS.length) | 0], 1, 13);
       }));
     }
-    const colors = dim.type === 'ember' ? ['#ffc15e', c0, c1] : dim.type === 'snow' ? ['#fff', c1, '#fff'] : [c0, c1, c0];
+    const colors = dim.type === 'ember' ? [tokenColor('--cat-skins-ink'), c0, c1] : dim.type === 'snow' ? [light, c1, light] : [c0, c1, c0];
     const sizes = dim.type === 'ember' ? [3, 4, 5] : [2, 3, 4];
     return sizes.map((s, i) => makeSprite(s, s, c => { c.fillStyle = colors[i]; c.fillRect(0, 0, s, s); }));
   }
@@ -112,8 +120,29 @@ export function initParticles() {
     particles = Array.from({ length: count }, () => { const p = {}; spawn(p, true); return p; });
   }
 
+  /* تُستدعى مع كل إطار rAF (حتى الذي لا يُرسم فيه شيء)، فتقيس سلاسة الصفحة كلها لا سرعة الرسم وحده. */
+  function watchFps(ts) {
+    if (!lowPower) return;
+    if (!fpsStart) { fpsStart = ts; fpsFrames = 0; return; }
+    fpsFrames++;
+    const span = ts - fpsStart;
+    if (span < FPS_WINDOW_MS) return;
+    const fps = fpsFrames * 1000 / span;
+    fpsStart = 0;
+    if (fpsWarm) { fpsWarm = false; return; }
+    fpsStrikes = fps < FPS_MIN ? fpsStrikes + 1 : 0;
+    if (fpsStrikes >= FPS_STRIKES) {
+      enabled = false;
+      stop();
+      canvas.remove();
+      log.warn('particles', 'measured ' + fps.toFixed(1) + ' fps (< ' + FPS_MIN + ') on a low-power device — particles disabled for this session');
+    }
+  }
+
   function frame(ts) {
     rafId = 0;
+    if (!running) return;
+    watchFps(ts);
     if (!running) return;
     if (ts - last >= MIN_FRAME_MS) {
       try { draw(ts); } catch (err) { disable('animation frame failed', err); return; }
@@ -146,6 +175,7 @@ export function initParticles() {
   function start() {
     if (!enabled || reduced || running || detailOpen || document.hidden) return;
     running = true;
+    fpsStart = 0; fpsWarm = true; fpsStrikes = 0;
     last = performance.now();
     rafId = requestAnimationFrame(frame);
   }
@@ -166,10 +196,14 @@ export function initParticles() {
   on('detail:opened', () => { detailOpen = true; syncRunning(); });
   on('detail:closed', () => { detailOpen = false; syncRunning(); });
   document.addEventListener('visibilitychange', syncRunning);
-  /* تغيير الثيم يعيد بناء جسيمات "All" بألوانه الجديدة. */
-  on('theme:changed', () => {
-    if (!(current === 'All' && enabled && !reduced)) return;
-    try { build(DIMENSIONS.All); } catch (err) { disable('failed to rebuild particles for the new theme', err); }
+  /* «تقليل الحركة» قد يتغيّر أثناء الجلسة (إعدادات الجهاز): نتوقف ونمسح الـcanvas فورًا، أو نبني ونستأنف. */
+  const motionQuery = matchMedia('(prefers-reduced-motion: reduce)');
+  motionQuery.addEventListener('change', e => {
+    reduced = e.matches;
+    if (!enabled) return;
+    if (reduced) { stop(); ctx.clearRect(0, 0, W, H); return; }
+    try { build(DIMENSIONS[current] || DIMENSIONS.All); } catch (err) { disable('failed to build particles', err); return; }
+    syncRunning();
   });
 
   setDimension(root.getAttribute('data-cat') || 'All');
