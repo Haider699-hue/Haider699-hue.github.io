@@ -2,9 +2,8 @@
 import { state, updateFilters } from '../state.js';
 import { parseHash } from '../routes.js';
 import { findMod, getStatus } from '../data/catalog.js';
-import { openDetail, closeDetailUi, isDetailOpen, getOpenHash } from './detail.js';
+import { openDetail, openNotFound, closeDetailUi, isDetailOpen, getOpenHash } from './detail.js';
 import { safe } from '../lib/log.js';
-import { notifyError } from '../lib/notify.js';
 
 const goHome = () => {
   state.detailId = '';
@@ -19,10 +18,7 @@ export function syncFromHash() {
     if (!findMod(route.id)) {
       /* لا نحكم بأن العنصر غير موجود إلا بعد وصول البيانات فعلًا؛ لو فشل التحميل نترك المعرّف معلّقًا
        * (يُفتح بعد نجاح إعادة المحاولة، ويرى الزائر سبب التأخير في حالة الفشل). */
-      if (getStatus() === 'ready') {
-        goHome();
-        notifyError('العنصر المطلوب غير موجود أو تم حذفه.');
-      }
+      if (getStatus() === 'ready') openNotFound('route');
       return;
     }
     if (!openDetail(route.id, 'route')) goHome(); /* فشل العرض (يُبلَّغ الزائر داخل openDetail) */

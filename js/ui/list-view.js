@@ -1,7 +1,7 @@
 /* رسم قائمة البطاقات: عرض مجمّع حسب التصنيف (عند "الكل") أو قائمة مُرقّمة بزر "المزيد".
  * الأداء: لا نرسم أبدًا أكثر من PAGE_SIZE بطاقة دفعة واحدة (لكل قسم في العرض المجمّع)؛ الباقي بزر "المزيد"،
  * فيبقى عدد عناصر DOM وزمن الرسم ثابتين تقريبًا مهما كبر الكتالوج (مئات أو آلاف العناصر). */
-import { GROUP_ORDER, PAGE_SIZE, EAGER_CARDS, categoryMeta } from '../config.js';
+import { GROUP_ORDER, PAGE_SIZE, EAGER_CARDS, categoryMeta, categoryStyle } from '../config.js';
 import { normalize, isRecent } from '../data/catalog.js';
 import { esc, cssUrl } from '../lib/text.js';
 import { byId } from '../lib/dom.js';
@@ -33,14 +33,17 @@ function cardHtml(m, i) {  /* i: ترتيب البطاقة في الصفحة ك�
    * ونقر البطاقة بالماوس/اللمس يفتحها أيضًا (browse.js). */
   const name = `<h3 class="mod-name">${esc(n.name)}</h3>`;
   const specsWrap = chips ? `<div class="mod-spec">${chips}</div>` : '';
-  const badges = n.featured ? '<div class="zbadges"><span class="zb zb-top">مميز</span></div>' : '';
-  const head = `<article class="mod-card ${kind}${n.featured ? ' is-top' : ''}${isRecent(n) ? ' is-new' : ''}" data-id="${esc(n.id)}" data-cat="${esc(n.category)}" style="--cat-color:${c.color};">`;
+  const recent = isRecent(n);
+  const badges = n.featured || recent
+    ? `<div class="zbadges">${n.featured ? '<span class="zb zb-top">مميز</span>' : ''}${recent ? '<span class="zb zb-new">جديد</span>' : ''}</div>`
+    : '';
+  const head = `<article class="mod-card ${kind}${n.featured ? ' is-top' : ''}${recent ? ' is-new' : ''}" data-id="${esc(n.id)}" data-cat="${esc(n.category)}" style="${categoryStyle(c)}">`;
+  /* ترتيب العناصر = ترتيب الأهمية البصرية: الاسم ← الإصدار/الحجم ← الوصف ← زر واحد. */
   if (kind === 'k-ver') return `${head}<div class="mod-body">${name}${specsWrap}${button}</div></article>`;
-  const catLabel = `<div class="mod-cat">${ICON_USE(c.icon)}<span>${esc(c.label)}</span></div>`;
   const desc = n.description ? `<p class="mod-desc">${esc(n.description)}</p>` : '';
   /* الخلفية المموّهة (--bg) تُضبط بعد تحميل الصورة نفسها (initThumbBackdrops)، لأن خلفية CSS لا تحترم loading="lazy"
    * وكانت تُحمّل صور كل البطاقات فورًا حتى البعيدة عن الشاشة. */
-  return `${head}<div class="mod-thumb">${badges}${thumb}</div><div class="mod-body">${catLabel}${name}${desc}${specsWrap}${button}</div></article>`;
+  return `${head}<div class="mod-thumb">${badges}${thumb}</div><div class="mod-body">${name}${specsWrap}${desc}${button}</div></article>`;
 }
 
 /* بطاقة واحدة تالفة البيانات لا تُسقط القائمة كلها: تُتخطّى وتُسجَّل. */
@@ -60,7 +63,7 @@ function buildGroups() {
   const extra = [...byCat.keys()].filter(cat => cat && !GROUP_ORDER.includes(cat));
   return [...GROUP_ORDER, ...extra]
     .filter(cat => byCat.has(cat))
-    .map(cat => ({ cat, meta: categoryMeta(cat, '#a855f7'), items: byCat.get(cat), shown: 0 }));
+    .map(cat => ({ cat, meta: categoryMeta(cat), items: byCat.get(cat), shown: 0 }));
 }
 
 const groupMoreLabel = g => `المزيد من ${g.meta.label} (${g.items.length - g.shown})`;
@@ -79,8 +82,15 @@ function groupedHtml() {
     const more = g.shown < g.items.length
       ? `<div class="group-more"><button type="button" class="more-btn ${GROUP_MORE_CLASS}" data-group="${gi}">${esc(groupMoreLabel(g))}</button></div>`
       : '';
-    return `<section class="category-section" style="--section-color:${g.meta.color}"><h2 class="category-heading"><span class="category-heading-icon">${ICON_USE(g.meta.icon)}</span><span>${esc(g.meta.label)}</span><span class="category-count">${g.items.length}</span></h2><div class="category-grid">${cards}</div>${more}</section>`;
+    /* «عرض الكل» يفتح القسم وحده (#/c/<route>). الاسم المسموع يحتوي النص الظاهر (WCAG 2.5.3). */
+    const all = g.meta.route ? `<a class="category-all" href="#/c/${g.meta.route}" data-nav="${esc(g.cat)}" aria-label="عرض الكل: ${esc(g.meta.label)}">عرض الكل</a>` : '';
+    return `<section class="category-section" style="${categoryStyle(g.meta)}">${categoryHead(g.meta, g.items.length, all)}<div class="category-grid">${cards}</div>${more}</section>`;
   }).join('');
+}
+
+/* رأس القسم: أيقونة + اسم + عدد (+ «عرض الكل» في العرض المجمّع). نفس الرأس يظهر في صفحة القسم الواحد، فالقسم دايمًا مكتوب بالنص والأيقونة مش باللون. */
+function categoryHead(meta, count, extra = '', style = '') {
+  return `<div class="category-head"${style}><h2 class="category-heading"><span class="category-heading-icon">${ICON_USE(meta.icon)}</span><span>${esc(meta.label)}</span><span class="category-count">${count}</span></h2>${extra}</div>`;
 }
 
 /* زر "المزيد" الخاص بقسم في العرض المجمّع: يضيف الدفعة التالية لنفس القسم بلا إعادة رسم بقية الصفحة. */
@@ -124,8 +134,9 @@ export function initThumbBackdrops(list) {
   }, true);
 }
 
-/* grouped=true: الأقسام مجمّعة (أول PAGE_SIZE من كل قسم + زر المزيد) · false: قائمة مُرقّمة. */
-export function renderMods(mods, { grouped }) {
+/* grouped=true: الأقسام مجمّعة (أول PAGE_SIZE من كل قسم + زر المزيد) · false: قائمة مُرقّمة.
+ * filtered: هناك بحث أو تصنيف محدد، فيُعرض عدّاد النتائج. */
+export function renderMods(mods, { grouped, filtered = true }) {
   view = mods || [];
   shown = 0;
   groups = [];
@@ -137,10 +148,13 @@ export function renderMods(mods, { grouped }) {
     shown = view.length;
     byId('moreWrap').hidden = true;
   } else {
-    list.innerHTML = '';
+    /* صفحة قسم واحد (أو بحث داخل قسم): رأس القسم أولًا، وبكده تسلسل العناوين h1 ← h2 ← h3 سليم. */
+    const cats = new Set(view.map(m => m.category));
+    list.innerHTML = cats.size === 1 ? categoryHead(categoryMeta([...cats][0]), view.length, '', ` style="${categoryStyle(categoryMeta([...cats][0]))}"`) : '';
     appendPage();
   }
-  byId('resultCount').textContent = view.length > 0 ? `تم العثور على ${view.length} عنصر` : '';
+  /* العدّاد يظهر عند البحث/الفلترة فقط؛ في الصفحة الافتراضية لكل قسم عدّاده في عنوانه، فلا ضوضاء إضافية. */
+  byId('resultCount').textContent = filtered && view.length > 0 ? `تم العثور على ${view.length} عنصر` : '';
   byId('emptyState').hidden = view.length > 0;
   emit('list:rendered', { count: view.length });
 }

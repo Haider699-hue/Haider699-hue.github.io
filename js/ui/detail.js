@@ -1,5 +1,6 @@
-/* صفحة التفاصيل: فتح/إغلاق، تكامل مع history، حبس التركيز، نسخ الرابط، عدّاد التحميل. */
-import { SITE_TITLE, STORAGE } from '../config.js';
+/* صفحة التفاصيل: فتح/إغلاق، تكامل مع history، حبس التركيز، نسخ الرابط، عدّاد التحميل، ووسوم الصفحة للعنصر المفتوح.
+ * نفس الغلاف يعرض صفحة «العنصر غير موجود» للرابط القديم (openNotFound). */
+import { STORAGE } from '../config.js';
 import { findMod, normalize, recordDownload } from '../data/catalog.js';
 import { state } from '../state.js';
 import { buildHash, itemHash } from '../routes.js';
@@ -8,7 +9,8 @@ import { emit } from '../lib/bus.js';
 import { log } from '../lib/log.js';
 import { notifyError } from '../lib/notify.js';
 import { activateModal } from '../lib/modal.js';
-import { detailHtml } from './detail-view.js';
+import { detailHtml, notFoundHtml, shareUrl } from './detail-view.js';
+import { setItemMeta, setNotFoundMeta, resetMeta } from '../features/page-meta.js';
 
 let overlay, sheet, body;
 let detailOpen = false;
@@ -36,16 +38,27 @@ export function openDetail(id, mode, opener) {
     notifyError('تعذّر عرض تفاصيل هذا العنصر.');
     return false;
   }
+  setItemMeta(n, shareUrl(n));
+  present(html, { id: n.id, hash: itemHash(n), mode, opener });
+  return true;
+}
+
+/* رابط #/i/<id> لعنصر غير موجود (والبيانات وصلت فعلًا): صفحة بسبب واضح وزر رجوع بدل شاشة فاضية أو تحويل صامت. */
+export function openNotFound(mode) {
+  setNotFoundMeta();
+  present(notFoundHtml(), { id: '', hash: location.hash, mode });
+}
+
+/* يعرض html داخل الغلاف: history + حبس التركيز + قفل تمرير الخلفية. state.detailId = id (فارغ للصفحة غير الموجودة). */
+function present(html, { id, hash, mode, opener }) {
   openerEl = opener || document.activeElement;
   const wasOpen = detailOpen;
   body.innerHTML = html;
-  state.detailId = n.id;
+  state.detailId = id;
   overlay.hidden = false;
   detailOpen = true;
   overlay.scrollTop = 0;
-  document.title = n.name + ' — HAIDER';
   try {
-    const hash = itemHash(n);
     openHash = hash;
     if (mode === 'route') pushed = !!(history.state && history.state.zd);
     else if (location.hash !== hash) { history.pushState({ zd: 1 }, '', hash); pushed = true; }
@@ -58,7 +71,7 @@ export function openDetail(id, mode, opener) {
     if (close) close.focus({ preventScroll: true });
   });
   if (!wasOpen) emit('detail:opened');
-  return true;
+  emit('detail:rendered');
 }
 
 /* يغلق الواجهة فقط (بدون لمس history). */
@@ -69,7 +82,7 @@ export function closeDetailUi() {
   overlay.hidden = true;
   body.innerHTML = '';
   lockScroll(false);
-  document.title = SITE_TITLE;
+  resetMeta();
   state.detailId = '';
   /* القائمة قد تُعاد رسمها والنافذة مفتوحة (تحديث الكتالوج) فيصير الزر القديم خارج الصفحة: نرجع لزر بطاقة العنصر نفسه. */
   const card = closedId && document.querySelector('.mod-card[data-id="' + CSS.escape(closedId) + '"] .view-btn');

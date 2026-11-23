@@ -15,7 +15,8 @@ export function initSearch() {
   });
 
   if (!clear) return;
-  const syncClear = () => { clear.hidden = !input.value; };
+  const box = input.closest('.search-box');
+  const syncClear = () => { clear.hidden = !input.value; if (box) box.classList.toggle('has-text', !!input.value); }; /* has-text: يخفي تلميح «/» بينما فيه نص يُمسح */
   input.addEventListener('input', syncClear);
   on('filters:changed', syncClear);
   syncClear();

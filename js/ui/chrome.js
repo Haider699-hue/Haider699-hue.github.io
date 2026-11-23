@@ -1,4 +1,4 @@
-/* عناصر الصفحة العامة: قائمة الهيدر، ظل الهيدر عند التمرير، زر العودة للأعلى. */
+/* عناصر الصفحة العامة: شريط التصنيفات (chips) وروابط «عرض الكل»، ظل الهيدر عند التمرير، زر العودة للأعلى. */
 import { setCategory } from '../state.js';
 import { byId, prefersReducedMotion } from '../lib/dom.js';
 import { onScroll } from '../lib/scroll.js';
@@ -8,7 +8,7 @@ const TO_TOP_AFTER_PX = 600;
 
 export function initChrome() {
   document.addEventListener('click', e => {
-    const link = e.target.closest('.hnav a');
+    const link = e.target.closest('.hnav a, .category-all');
     if (!link) return;
     e.preventDefault();
     const cat = link.getAttribute('data-nav');

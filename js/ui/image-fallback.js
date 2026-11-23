@@ -3,13 +3,14 @@
  *   - بطاقة القائمة  ← بديل التصنيف نفسه المستخدم للبطاقات بلا صورة
  *   - صورة التفاصيل الرئيسية ← أول صورة سليمة من المعرض، وإلا رسالة نصية
  *   - صورة مصغّرة في المعرض ← تُزال، وتُخفى الأسهم لو بقيت صورة واحدة
- *   - صورة محتوى ذي صلة ← تُزال والبطاقة تبقى بنصها */
+ *   - صورة محتوى ذي صلة ← بديل التصنيف نفسه (نفس بطاقات القائمة) */
 import { categoryMeta } from '../config.js';
 import { create } from '../lib/dom.js';
 import { log, safe } from '../lib/log.js';
 import { placeholderHtml } from './list-view.js';
 
 const FAILED = 'failed';
+const createFromHtml = html => { const t = document.createElement('template'); t.innerHTML = html; return t.content.firstElementChild; };
 const IMAGE_ERROR_TEXT = 'تعذّر تحميل الصورة';
 
 function cardImageFailed(img) {
@@ -58,7 +59,8 @@ const onImageError = safe('image-fallback', event => {
 
   if (img.closest('.mod-thumb')) return cardImageFailed(img);
   if (dp && (img.closest('.tt-img') || img.closest('.tt-th-btn'))) return refreshGallery(dp, img);
-  if (img.closest('.dp-rel')) img.remove();
+  const related = img.closest('.dp-rel');
+  if (related) img.replaceWith(createFromHtml(placeholderHtml(categoryMeta(related.dataset.cat || ''))));
 });
 
 export function initImageFallback() {

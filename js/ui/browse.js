@@ -6,17 +6,18 @@ import { whenSupabaseReady } from '../data/supabase.js';
 import { renderMods, showMore, showMoreInGroup, initThumbBackdrops } from './list-view.js';
 import { openDetail, isDetailOpen } from './detail.js';
 import { syncFromHash } from './navigation.js';
-import { byId } from '../lib/dom.js';
+import { byId, prefersReducedMotion } from '../lib/dom.js';
 import { on } from '../lib/bus.js';
 import { log } from '../lib/log.js';
 import { notifyError } from '../lib/notify.js';
 
 /* "الكل" يُعرض مجمّعًا حسب التصنيف، إلا لو كان هناك عنصر مفتوح/مطلوب من الرابط. */
-const isGrouped = () => state.cat === 'All' && !state.detailId;
+/* التجميع بأقسام يتبع القسم فقط. (كان يتبع فتح التفاصيل أيضًا، فأي إعادة رسم والنافذة مفتوحة كانت تترك القائمة مسطّحة بلا عناوين بعد الإغلاق.) */
+const isGrouped = () => state.cat === 'All';
 
 function apply() {
   try {
-    renderMods(queryMods(state), { grouped: isGrouped() });
+    renderMods(queryMods(state), { grouped: isGrouped(), filtered: state.cat !== 'All' || !!state.q.trim() });
   } catch (err) {
     log.error('browse', 'failed to render the list', err);
     notifyError('تعذّر عرض القائمة. جرّب تغيير التصنيف أو أعد تحميل الصفحة.');
@@ -33,6 +34,8 @@ function syncUi() {
     const active = a.dataset.nav === state.cat;
     a.classList.toggle('active', active);
     if (active) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+    /* الشريط أفقي قابل للتمرير على الموبايل: التصنيف النشط يتمرّر لمنتصفه (أفقيًا فقط، ولا يحرّك الصفحة). */
+    if (active && a.closest('.hnav')) a.scrollIntoView({ block: 'nearest', inline: 'center', behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
   });
   const input = byId('searchInput');
   if (input && input.value !== state.q) input.value = state.q;

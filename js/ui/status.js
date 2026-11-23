@@ -48,6 +48,9 @@ export function initStatus() {
   let sawFailure = false;
 
   on('list:rendered', () => { if (list.children.length) finishLoading(); });
+  /* الرسم الأول من الكاش (زيارة ثانية) يحدث في initBrowse قبل هذه الدالة فلا نسمع حدثه: بدون هذا السطر يظل الهيكل ظاهرًا والقائمة تحته خارج الشاشة
+   * إلى أن يرد Supabase، ثم تقفز القائمة لأعلى (CLS) وتتأخر أول صورة بزمن رحلة الشبكة. الهيكل والقائمة يتبادلان في نفس الإطار. */
+  if (list.children.length) finishLoading();
   on('status:changed', status => {
     if (status !== 'loading') finishLoading();
     list.setAttribute('aria-busy', status === 'loading' ? 'true' : 'false');
