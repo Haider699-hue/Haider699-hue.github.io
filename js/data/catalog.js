@@ -130,9 +130,13 @@ async function loadOnce() {
     });
     const usable = rows.filter(isUsableRow);
     if (usable.length !== rows.length) log.warn('catalog', 'skipped ' + (rows.length - usable.length) + ' malformed row(s) without an id');
-    remoteRows = usable.map(fromRow);
+    const fresh = usable.map(fromRow);
+    /* زيارة دافئة: القائمة معروضة من الكاش، ولو رد الخادم بنفس البيانات فلا معنى لإعادة رسمها (كانت long task ~250ms عند CPU ×4 في نص تمرير الزائر). */
+    const unchanged = hasRemote && status === 'ready' && JSON.stringify(fresh) === JSON.stringify(remoteRows);
+    writeCatalogCache(fresh); /* نكتبه دايمًا: وقت الكتابة هو اللي بيحدد صلاحية الكاش */
+    if (unchanged) return true;
+    remoteRows = fresh;
     setMods(LOCAL_MODS.concat(remoteRows));
-    writeCatalogCache(remoteRows);
     hasRemote = true;
     setStatus('ready');
     emit('mods:changed');
