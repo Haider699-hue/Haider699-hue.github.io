@@ -81,7 +81,7 @@
 <div class="search-zone" role="search">
   <div class="search-box">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-    <input class="search-input" type="search" id="searchInput" name="q" placeholder="ابحث باسم إضافة أو شيدر أو سكن…" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" aria-label="بحث"><button type="button" class="s-clear" id="searchClear" aria-label="مسح البحث" hidden>×</button>
+    <input class="search-input" type="search" id="searchInput" name="q" placeholder="ابحث باسم إضافة أو شيدر أو سكن…" autocomplete="off" autocapitalize="off" spellcheck="false" inputmode="search" enterkeyhint="search" aria-label="بحث"><button type="button" class="s-clear" id="searchClear" aria-label="مسح البحث" hidden>×</button>
   </div>
   <div class="sort-box"><label for="sortSel">الترتيب</label>
     <select id="sortSel">
@@ -129,9 +129,9 @@
     <form id="admLogin" novalidate>
       <h2>دخول الإدارة</h2>
       <div id="admEmailWrap"><label for="admEmail">الإيميل</label>
-      <input id="admEmail" type="email" dir="ltr" autocomplete="username" maxlength="254" required></div>
+      <input id="admEmail" type="email" dir="ltr" autocomplete="username" inputmode="email" enterkeyhint="next" maxlength="254" required></div>
       <label for="admPass">كلمة المرور</label>
-      <input id="admPass" type="password" dir="ltr" autocomplete="current-password" maxlength="256" required>
+      <input id="admPass" type="password" dir="ltr" autocomplete="current-password" enterkeyhint="go" maxlength="256" required>
       <button type="submit" class="adm-btn" id="admLoginBtn">دخول</button>
     </form>
     <form id="admForm" autocomplete="off" novalidate hidden>
@@ -144,16 +144,16 @@
         <option value="Versions">الإصدارات</option>
       </select>
       <label for="admName">الاسم</label>
-      <input id="admName" type="text" maxlength="150" required aria-required="true" placeholder="اسم الإضافة أو الشيدر">
+      <input id="admName" type="text" enterkeyhint="next" maxlength="150" required aria-required="true" placeholder="اسم الإضافة أو الشيدر">
       <label for="admDl">رابط التحميل (ميديافاير أو غيره)</label>
-      <input id="admDl" type="url" dir="ltr" maxlength="2048" placeholder="https://...">
+      <input id="admDl" type="url" dir="ltr" inputmode="url" enterkeyhint="next" maxlength="2048" placeholder="https://...">
       <label id="admImgLabel">الصور (اختياري — الأولى هي الصورة الرئيسية)</label>
       <div id="admImgList" role="group" aria-labelledby="admImgLabel"></div>
       <button type="button" class="adm-ghost adm-add-img" id="admAddImg">+ إضافة صورة</button>
       <label for="admVer">إصدار ماينكرافت (اختياري)</label>
-      <input id="admVer" type="text" dir="ltr" maxlength="40" placeholder="1.21.80">
+      <input id="admVer" type="text" dir="ltr" enterkeyhint="next" maxlength="40" placeholder="1.21.80">
       <label for="admSize">الحجم (اختياري)</label>
-      <input id="admSize" type="text" dir="ltr" maxlength="40" placeholder="25 MB">
+      <input id="admSize" type="text" dir="ltr" enterkeyhint="next" maxlength="40" placeholder="25 MB">
       <label for="admDesc">الوصف (اختياري)</label>
       <textarea id="admDesc" rows="5" maxlength="5000" placeholder="اكتب وصفًا قصيرًا: إيه الإضافة دي بتعمل؟"></textarea>
       <button type="submit" class="adm-btn" id="admAddBtn">نشر العنصر</button>

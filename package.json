@@ -9,11 +9,12 @@
     "test:a11y": "python3 tests/a11y.py",
     "test:browser-data": "python3 tests/browser-data.py",
     "test:e2e": "python3 tests/e2e.py",
-    "test:all": "npm test && npm run test:browser && npm run test:a11y && npm run test:browser-data && npm run test:e2e && npm run test:visual-fixes && npm run test:first-impression && npm run test:content-density && npm run test:colors-fonts && npm run test:design-system",
+    "test:all": "npm test && npm run test:browser && npm run test:a11y && npm run test:browser-data && npm run test:e2e && npm run test:visual-fixes && npm run test:first-impression && npm run test:content-density && npm run test:colors-fonts && npm run test:design-system && npm run test:mobile-detail",
     "test:visual-fixes": "python3 tests/visual-fixes.py",
     "test:first-impression": "python3 tests/first-impression.py",
     "test:content-density": "python3 tests/content-density.py",
     "test:colors-fonts": "python3 tests/colors-fonts.py",
-    "test:design-system": "python3 tests/design-system.py"
+    "test:design-system": "python3 tests/design-system.py",
+    "test:mobile-detail": "python3 tests/mobile-detail.py"
   }
 }
