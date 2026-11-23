@@ -40,12 +40,13 @@ export const DEFAULT_SORT = 'downloads';
 export const MOD_TYPES = ['mcpack', 'mcaddon', 'mcworld', 'apk', 'other'];
 
 /* التصنيفات. المفتاح = قيمة category في قاعدة البيانات. kind = كلاس نوع البطاقة في CSS.
- * token = اسم القسم في باليتة الألوان (--cat-<token> و-soft و-ink في styles.css). label = اسم القسم المعرّف («ال») في كل مكان يظهر فيه كاسم قسم. */
+ * token = اسم القسم في باليتة الألوان (--cat-<token> و-soft و-ink في styles.css). label = اسم القسم المعرّف («ال») في كل مكان يظهر فيه كاسم قسم.
+ * noun = اسم العنصر المفرد بلا «ال» للجمل (وصف الصفحة المولَّد). */
 export const CATEGORIES = {
-  Addons:   { label: 'الإضافات',  token: 'addons',   color: 'var(--cat-addons)', icon: 'i-addons',   route: 'addons',   kind: 'k-addon'  },
-  Versions: { label: 'الإصدارات', token: 'versions', color: 'var(--cat-versions)', icon: 'i-versions', route: 'versions', kind: 'k-ver'    },
-  Skins:    { label: 'السكنات',   token: 'skins',    color: 'var(--cat-skins)', icon: 'i-skins',    route: 'skins',    kind: 'k-skin'   },
-  Shaders:  { label: 'الشيدرات',  token: 'shaders',  color: 'var(--cat-shaders)', icon: 'i-shaders',  route: 'shaders',  kind: 'k-shader' }
+  Addons:   { label: 'الإضافات',  noun: 'إضافة', token: 'addons',   color: 'var(--cat-addons)', icon: 'i-addons',   route: 'addons',   kind: 'k-addon'  },
+  Versions: { label: 'الإصدارات', noun: 'إصدار', token: 'versions', color: 'var(--cat-versions)', icon: 'i-versions', route: 'versions', kind: 'k-ver'    },
+  Skins:    { label: 'السكنات',   noun: 'سكن', token: 'skins',    color: 'var(--cat-skins)', icon: 'i-skins',    route: 'skins',    kind: 'k-skin'   },
+  Shaders:  { label: 'الشيدرات',  noun: 'شيدر', token: 'shaders',  color: 'var(--cat-shaders)', icon: 'i-shaders',  route: 'shaders',  kind: 'k-shader' }
 };
 /* ترتيب ظهور الأقسام في عرض "الكل". */
 export const GROUP_ORDER = ['Addons', 'Skins', 'Shaders', 'Versions'];
@@ -56,7 +57,7 @@ export const ROUTE_TO_CATEGORY = Object.fromEntries(
 
 /* بيانات عرض تصنيف حتى لو كان غير معروف (قيمة قديمة في قاعدة البيانات مثلًا): يأخذ ألوان الهوية. */
 export function categoryMeta(cat) {
-  return CATEGORIES[cat] || { label: cat, token: 'brand', color: 'var(--cat-brand)', icon: 'i-all', route: '', kind: 'k-addon' };
+  return CATEGORIES[cat] || { label: cat, noun: 'محتوى', token: 'brand', color: 'var(--cat-brand)', icon: 'i-all', route: '', kind: 'k-addon' };
 }
 
 /* قيمة style لعنصر يحمل ألوان قسمه: base / soft / ink (انظر باليتة الأقسام في styles.css). */
