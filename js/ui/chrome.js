@@ -8,15 +8,15 @@ const TO_TOP_AFTER_PX = 600;
 
 export function initChrome() {
   document.addEventListener('click', e => {
-    const link = e.target.closest('.hnav a, .category-all');
+    const link = e.target.closest('.cat-tile, .category-all');
     if (!link) return;
     e.preventDefault();
     const cat = link.getAttribute('data-nav');
     setCategory(cat);
-    if (cat === 'All') window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (cat === 'All' && !link.classList.contains('cat-tile')) window.scrollTo({ top: 0, behavior: 'smooth' });
     else {
-      const zone = document.querySelector('.search-zone');
-      if (zone) zone.scrollIntoView({ behavior: 'smooth' });
+      const feed = byId('feed');
+      if (feed) feed.scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
     }
   });
 

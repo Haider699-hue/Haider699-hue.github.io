@@ -1,12 +1,12 @@
 /* منسّق قائمة التصفح: يربط الحالة (التصنيف/البحث/الترتيب) بالرسم والرابط وفتح البطاقات. */
 import { state, updateFilters } from '../state.js';
 import { parseHash, syncHash } from '../routes.js';
-import { queryMods, reloadMods } from '../data/catalog.js';
+import { queryMods, reloadMods, getMods, normalize } from '../data/catalog.js';
 import { whenSupabaseReady } from '../data/supabase.js';
 import { renderMods, showMore, showMoreInGroup, initThumbBackdrops } from './list-view.js';
 import { openDetail, isDetailOpen } from './detail.js';
 import { syncFromHash } from './navigation.js';
-import { byId, prefersReducedMotion } from '../lib/dom.js';
+import { byId } from '../lib/dom.js';
 import { on } from '../lib/bus.js';
 import { log } from '../lib/log.js';
 import { notifyError } from '../lib/notify.js';
@@ -27,15 +27,24 @@ function apply() {
   if (state.detailId && !isDetailOpen()) syncFromHash();
 }
 
+/* عدّاد كل بطاقة قسم = العدد الكلي في الكتالوج (لا يتأثر بالبحث). قسم بلا عناصر يعرض «قريباً». */
+function updateTileCounts() {
+  const counts = { All: 0 };
+  getMods().forEach(m => { const c = normalize(m).category; counts.All++; counts[c] = (counts[c] || 0) + 1; });
+  document.querySelectorAll('.cat-tile-count').forEach(el => {
+    const n = counts[el.dataset.count] || 0;
+    el.textContent = n || 'قريباً';
+    el.classList.toggle('is-soon', !n);
+  });
+}
+
 /* يعكس الحالة على عناصر الواجهة (data-cat، القائمة، حقل البحث، قائمة الترتيب). */
 function syncUi() {
   document.documentElement.setAttribute('data-cat', state.cat);
-  document.querySelectorAll('.hnav a').forEach(a => {
+  document.querySelectorAll('.cat-tile').forEach(a => {
     const active = a.dataset.nav === state.cat;
     a.classList.toggle('active', active);
     if (active) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
-    /* الشريط أفقي قابل للتمرير على الموبايل: التصنيف النشط يتمرّر لمنتصفه (أفقيًا فقط، ولا يحرّك الصفحة). */
-    if (active && a.closest('.hnav')) a.scrollIntoView({ block: 'nearest', inline: 'center', behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
   });
   const input = byId('searchInput');
   if (input && input.value !== state.q) input.value = state.q;
@@ -55,7 +64,7 @@ export function initBrowse() {
     apply();
     if (history !== 'none') syncHash(state, history === 'push');
   });
-  on('mods:changed', apply);
+  on('mods:changed', () => { updateTileCounts(); apply(); });
 
   byId('moreBtn').addEventListener('click', showMore);
   byId('sortSel').addEventListener('change', e => updateFilters({ sort: e.target.value }, 'replace'));
@@ -72,6 +81,7 @@ export function initBrowse() {
   const route = parseHash();
   Object.assign(state, { cat: route.cat, q: route.q, sort: route.sort, detailId: route.id });
   syncUi();
+  updateTileCounts();
   apply();
 
   /* تحميل البيانات عند جاهزية Supabase. */
