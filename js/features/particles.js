@@ -15,7 +15,8 @@ const DIMENSIONS = {
   Addons:   { tokens: ['--cat-addons', '--cat-addons-ink'],     type: 'orb' },
   Skins:    { tokens: ['--cat-skins', '--cat-skins-ink'],       type: 'ember' },
   Shaders:  { tokens: ['--cat-shaders', '--cat-shaders-ink'],   type: 'glyph' },
-  Versions: { tokens: ['--cat-versions', '--cat-versions-ink'], type: 'snow' }
+  Versions: { tokens: ['--cat-versions', '--cat-versions-ink'], type: 'snow' },
+  Worlds:   { tokens: ['--cat-worlds', '--cat-worlds-ink'],     type: 'mote' }
 };
 const tokenColor = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 /* vy: مدى السرعة الرأسية · sway: انحراف أفقي · alpha: الشفافية · pulse: نبض · fade: يتلاشى مع العمر */
