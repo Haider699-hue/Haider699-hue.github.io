@@ -46,10 +46,13 @@ export const CATEGORIES = {
   Addons:   { label: 'الإضافات',  noun: 'إضافة', token: 'addons',   color: 'var(--cat-addons)', icon: 'i-addons',   route: 'addons',   kind: 'k-addon'  },
   Versions: { label: 'الإصدارات', noun: 'إصدار', token: 'versions', color: 'var(--cat-versions)', icon: 'i-versions', route: 'versions', kind: 'k-ver'    },
   Skins:    { label: 'السكنات',   noun: 'سكن', token: 'skins',    color: 'var(--cat-skins)', icon: 'i-skins',    route: 'skins',    kind: 'k-skin'   },
-  Shaders:  { label: 'الشيدرات',  noun: 'شيدر', token: 'shaders',  color: 'var(--cat-shaders)', icon: 'i-shaders',  route: 'shaders',  kind: 'k-shader' }
+  Shaders:  { label: 'الشيدرات',  noun: 'شيدر', token: 'shaders',  color: 'var(--cat-shaders)', icon: 'i-shaders',  route: 'shaders',  kind: 'k-shader' },
+  Worlds:   { label: 'العوالم',   noun: 'عالم', token: 'worlds',   color: 'var(--cat-worlds)', icon: 'i-worlds',   route: 'worlds',   kind: 'k-world'  }
 };
+/* ترتيب بطاقات شبكة الأقسام في الصفحة الرئيسية (RTL: الأول يظهر يمين الصف الأول). All ليس تصنيفًا في قاعدة البيانات. */
+export const TILE_ORDER = ['All', 'Addons', 'Skins', 'Shaders', 'Versions', 'Worlds'];
 /* ترتيب ظهور الأقسام في عرض "الكل". */
-export const GROUP_ORDER = ['Addons', 'Skins', 'Shaders', 'Versions'];
+export const GROUP_ORDER = ['Addons', 'Skins', 'Shaders', 'Versions', 'Worlds'];
 /* مسار الرابط (#/c/<route>) → قيمة التصنيف. */
 export const ROUTE_TO_CATEGORY = Object.fromEntries(
   [['all', 'All'], ...Object.entries(CATEGORIES).map(([cat, meta]) => [meta.route, cat])]
